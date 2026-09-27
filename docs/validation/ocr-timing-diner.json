@@ -1,0 +1,1 @@
+{"elapsedMs":1002,"assets":["http://127.0.0.1:3200/ocr/worker.min.js","http://127.0.0.1:3200/ocr/tesseract-core-simd-lstm.wasm.js","http://127.0.0.1:3200/ocr/eng.traineddata.gz"],"external":[],"errors":[],"inputs":["14.95","5.95","3.50"]}

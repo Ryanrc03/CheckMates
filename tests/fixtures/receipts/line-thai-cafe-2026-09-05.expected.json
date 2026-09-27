@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "line-thai-cafe-2026-09-05",
+  "annotationKind": "manual-ground-truth",
+  "currency": "USD",
+  "merchant": "Line Thai Cafe",
+  "receiptDate": "2026-09-05",
+  "items": [
+    {
+      "id": "pineapple-fried-rice",
+      "name": "Pineapple Fried Rice",
+      "modifiers": ["Chicken"],
+      "priceCents": 1390,
+      "printedQuantity": null,
+      "printedUnitPriceCents": null
+    },
+    {
+      "id": "fried-tofu",
+      "name": "Fried Tofu (12)",
+      "modifiers": [],
+      "priceCents": 790,
+      "printedQuantity": null,
+      "printedUnitPriceCents": null,
+      "note": "(12) describes the portion; do not multiply the line price by 12."
+    },
+    {
+      "id": "milk-tea",
+      "name": "Milk Tea",
+      "modifiers": [],
+      "priceCents": 400,
+      "printedQuantity": null,
+      "printedUnitPriceCents": null
+    },
+    {
+      "id": "pad-thai",
+      "name": "Pad Thai",
+      "modifiers": ["Chicken"],
+      "priceCents": 2580,
+      "printedQuantity": 2,
+      "printedUnitPriceCents": 1290
+    },
+    {
+      "id": "pad-kra-pow",
+      "name": "Pad Kra Pow",
+      "modifiers": ["Chicken", "No Onion"],
+      "priceCents": 1290,
+      "printedQuantity": null,
+      "printedUnitPriceCents": null
+    },
+    {
+      "id": "brown-sugar-milk",
+      "name": "Brown Sugar Milk",
+      "modifiers": [],
+      "priceCents": 800,
+      "printedQuantity": 2,
+      "printedUnitPriceCents": 400
+    }
+  ],
+  "subtotalCents": 7250,
+  "printedTaxRateBasisPoints": 825,
+  "taxCents": 598,
+  "printedTipCents": null,
+  "defaultBillTipCents": 0,
+  "totalCents": 7848,
+  "paymentAmountCents": 7848,
+  "ignoredAsItems": [
+    "Merchant address, phone, date and time",
+    "Ticket, receipt and authorization identifiers",
+    "Payment network, card information and AID",
+    "FOR HERE and Verified on Device",
+    "Chicken and No Onion modifier lines",
+    "($12.90 each) and ($4.00 each) unit price lines",
+    "Subtotal, sale tax (8.25%), Total and payment amount"
+  ],
+  "expectedItemCount": 6,
+  "splitScenarios": [
+    {
+      "id": "two-people-share-every-line",
+      "description": "Artificial test assignments; not inferred from the real diners.",
+      "people": ["A", "B"],
+      "assignment": "all-items-to-all-people",
+      "tipCents": 0,
+      "expectedShares": [
+        { "person": "A", "itemsCents": 3625, "taxCents": 299, "tipCents": 0, "totalCents": 3924 },
+        { "person": "B", "itemsCents": 3625, "taxCents": 299, "tipCents": 0, "totalCents": 3924 }
+      ]
+    }
+  ]
+}

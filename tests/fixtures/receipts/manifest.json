@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "receipts": [
+    {
+      "id": "line-thai-cafe-2026-09-05",
+      "image": "line-thai-cafe-2026-09-05-redacted.png",
+      "expected": "line-thai-cafe-2026-09-05.expected.json",
+      "source": "User-provided receipt photo attached in this project conversation",
+      "usage": "User authorized publication of a redacted derivative for project tests",
+      "imageKind": "photograph",
+      "originalPreserved": false,
+      "sha256": "fb9482bfe1714746837f6d96d7d7ed9796b936669a382b857e8cff57fa76dded",
+      "bytes": 2314985,
+      "annotationMethod": "Manual visual transcription of the attached image, not OCR output",
+      "ocrValidationStatus": "real_browser_test_passed_with_explicit_manual_review",
+      "covers": [
+        "wooden-table-background",
+        "perspective-and-tilt",
+        "multiline-item-modifiers",
+        "quantity-times-two",
+        "unit-price-not-extra-item",
+        "parenthesized-item-description",
+        "tax-rate-versus-tax-amount",
+        "duplicate-total-payment-line",
+        "receipt-metadata-not-items"
+      ],
+      "observedBeforeCorrection": {
+        "chargedPriceCents": [
+          1390,
+          790,
+          400,
+          2580,
+          1290,
+          800
+        ],
+        "taxCents": null,
+        "subtotalCents": 7250,
+        "printedTotalCents": null,
+        "notes": "Printed tax and total missing; some names and low-confidence metadata require review. See docs/verification.md."
+      },
+      "afterCorrection": {
+        "totalCents": 7848,
+        "twoEqualSharesCents": [
+          3924,
+          3924
+        ]
+      }
+    },
+    {
+      "id": "clear-diner",
+      "image": "clear-diner.png",
+      "imageKind": "synthetic",
+      "source": "Project-authored typeset fixture, scripts/prepare-test-receipts.mjs",
+      "usage": "CC0-1.0",
+      "sha256": "94a0e728af6de93a7de6e15c4adb3de5279b7ab8a1dd83cd366e61177b27c4b6",
+      "bytes": 35858,
+      "expected": "clear-diner.expected.json"
+    },
+    {
+      "id": "clear-cafe",
+      "image": "clear-cafe.png",
+      "imageKind": "synthetic",
+      "source": "Project-authored typeset fixture, scripts/prepare-test-receipts.mjs",
+      "usage": "CC0-1.0",
+      "sha256": "ce29b89d160e24cfcb4158643898c50cb5196389616c34eb09de3dc41e5e3c9c",
+      "bytes": 51420,
+      "expected": "clear-cafe.expected.json"
+    },
+    {
+      "id": "blank",
+      "image": "blank.png",
+      "imageKind": "synthetic",
+      "source": "Project-authored typeset fixture, scripts/prepare-test-receipts.mjs",
+      "usage": "CC0-1.0",
+      "sha256": "501e04fbb58677197369366a0ffa092e997e6f258b48a8593d01da9ff9002260",
+      "bytes": 3704,
+      "expected": null
+    },
+    {
+      "id": "blurred",
+      "image": "blurred.png",
+      "imageKind": "synthetic",
+      "source": "Project-authored typeset fixture, scripts/prepare-test-receipts.mjs",
+      "usage": "CC0-1.0",
+      "sha256": "89c81ca8a41a95adf8b4673b8ed6c88f400e74a7db260730ed56ced44df3364d",
+      "bytes": 59028,
+      "expected": null
+    }
+  ],
+  "realPhotoCorpus": {
+    "required": 3,
+    "available": 1,
+    "limitation": "Additional licensed download was rate-limited (HTTP429); no claim of three-photo acceptance."
+  }
+}

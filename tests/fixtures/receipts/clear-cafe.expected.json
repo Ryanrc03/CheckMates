@@ -1,0 +1,39 @@
+{
+  "id": "clear-cafe",
+  "lines": [
+    "SUNDAY CAFE",
+    "",
+    "Soup                 8.25",
+    "Toast                4.50",
+    "Coffee               3.75",
+    "",
+    "Subtotal            16.50",
+    "Tax                  1.32",
+    "Gratuity             2.00",
+    "Total               19.82",
+    "",
+    "Suggested tip",
+    "18%                  2.97",
+    "20%                  3.30"
+  ],
+  "items": [
+    {
+      "name": "Soup",
+      "priceCents": 825
+    },
+    {
+      "name": "Toast",
+      "priceCents": 450
+    },
+    {
+      "name": "Coffee",
+      "priceCents": 375
+    }
+  ],
+  "taxCents": 132,
+  "totalCents": 1982,
+  "imageKind": "synthetic",
+  "source": "Project-owned typeset test fixture",
+  "license": "CC0-1.0",
+  "annotationKind": "manual-ground-truth"
+}

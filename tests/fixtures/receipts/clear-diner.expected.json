@@ -1,0 +1,34 @@
+{
+  "id": "clear-diner",
+  "lines": [
+    "WEEKEND DINER",
+    "",
+    "Burger              14.95",
+    "Fries                5.95",
+    "Lemonade             3.50",
+    "",
+    "Subtotal            24.40",
+    "Tax                  2.01",
+    "Total               26.41"
+  ],
+  "items": [
+    {
+      "name": "Burger",
+      "priceCents": 1495
+    },
+    {
+      "name": "Fries",
+      "priceCents": 595
+    },
+    {
+      "name": "Lemonade",
+      "priceCents": 350
+    }
+  ],
+  "taxCents": 201,
+  "totalCents": 2641,
+  "imageKind": "synthetic",
+  "source": "Project-owned typeset test fixture",
+  "license": "CC0-1.0",
+  "annotationKind": "manual-ground-truth"
+}

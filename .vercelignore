@@ -1,0 +1,5 @@
+.private/
+.superpowers/
+test-results/
+playwright-report/
+coverage/

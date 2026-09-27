@@ -1,0 +1,143 @@
+1
+Start
+2
+Receipt
+3
+Friends
+4
+Split
+5
+Result
+
+A QUICK DOUBLE-CHECK
+
+Check the receipt
+
+Make sure each price is the whole line total.
+
+Your photo · review required
+Open photo to zoom ↗
+Rotate 90° & retry
+Recognize again
+Reattach receipt photo
+Original recognized text
+4 gh” oF Sr
+P CZ
+bo 5
+7 ” 4
+> 7 A 4%
+~ ? & 2 2
+Zi Zo
+7 SZ 72  # 2
+. “ . Zz.”
+A Le
+7 : ZZ
+py ; - i ZZ
+a, ; 7 ZZ ’
+- ¥ ; 7 ZA Z
+Z 7 7 CF Z
+= ZA ZF 7
+yo Fe Pa A ve,
+7 : 5 ae
+cs 5 HF #
+” Line Thai Cafe Tb ‘ c
+501WHolland Ave ~~ September 5, 2026
+2 Alpine, TX 2:37PM : >
+79830
+(571) 518-8340 S
+— LAST : P
+FOR HERE -
+-— ’
+Ticket: 4 S
+Receipt: | NR zr >
+Authorization: [INNER 7 ~
+| ~
+Verified on Device po bo
+Pineapple Fried Rice $13.90 z oH
+Chicken ~~ >
+Fried Tofu (12) $7.90 -
+Milk Tea $4.00 §
+Pad Thai x 2 $25.80
+Chicken
+($12.90 each) ”
+Pad Kra Pow $12.90
+Chicken
+No Onion
+Brown Sugar Milk x 2 $8.00
+($4.00 each) :
+: Subtotal
+$72.50
+sale tax (8.259
+a) $5.98
+7848
+Visa (Contact 4
+[— Ctless) $78. 48
+
+THE RECEIPT
+USD
+Item 1
+Price
+Item 2
+Price
+Item 3
+Price
+Item 4
+Price
+Item 5
+Price
+Item 6
+Price
+Item 7
+Price
+Item 8
+Price
+Item 9
+Price
+Item 10
+Price
+Item 11
+Price
+Item 12
+Price
+Item 13
+Price
+Add item
+Items subtotal
+$72.50
+Tax
+Tip already on receipt
+Added tip
+Only what you want to add now
+Edited total
+$72.50
+
+Printed subtotal
+$72.50
+
+Printed total
+Not identified
+
+Before we split
+Missing or unclear price: P CZ
+Missing or unclear price: bo 5
+Missing or unclear price: Zi Zo
+Missing or unclear price: 7 SZ 72 # 2
+Missing or unclear price: A Le
+Missing or unclear price: = ZA ZF 7
+Missing or unclear price: FOR HERE -
+Extra text after amount: check Pineapple Fried Rice $13.90 z oH
+Check item modifier: Chicken ~~ >
+Extra text after amount: check Fried Tofu (12) $7.90 -
+Extra text after amount: check Milk Tea $4.00 §
+Check quantity: confirm the line total for Pad Thai x 2.
+Extra text after amount: check ($12.90 each) ”
+Check quantity and unit-price lines against each item’s line total.
+Check quantity: confirm the line total for Brown Sugar Milk x 2.
+Extra text after amount: check ($4.00 each) :
+Tax was not identified. Enter the tax or explicitly enter 0.
+Recognition confidence is low. Compare every line with the photo.
+Printed total was not identified. Check all amounts against the photo.
+I checked the photo, amounts, and all review notes.
+Back
+Add friends
+→
