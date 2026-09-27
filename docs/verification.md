@@ -1,6 +1,6 @@
 # Verification record — CheckMates MVP
 
-Date: 2026-09-27. Environment: Windows, Node 24.12.0, npm 11.6.2, Next.js 16.3.6, Chromium 145 (Playwright 1.58.2). Branch: `feat/bitesplit-mvp`.
+Date: 2026-09-27. Environment: Windows, Node 24.12.0, npm 11.6.2, Next.js 16.3.6, Chromium 145 (Playwright 1.58.2). Public branch: `main`.
 
 ## Commands and evidence
 
@@ -39,4 +39,8 @@ The worker, SIMD LSTM WASM wrapper and English model returned HTTP 200 from the 
 
 Five steps checked at 375×900 and 1280×900, with screenshots and horizontal-overflow assertions. Keyboard Enter adds friends and activates assignment controls; headings receive focus on step change, invalid fields receive focus after failed receipt submission, and reduced-motion media is supported. Long names wrap in visible participant labels, assignment chips and results. Main controls have at least 44px height. Bottom action bars include safe-area padding and pages retain enough trailing scroll space.
 
-Synthetic tests do not prove all practical OCR layouts. Real-photo noise and missing totals need manual correction. Only Chromium desktop/mobile viewport emulation was exercised; no physical phone camera, Safari or Firefox acceptance is claimed. Images are not persisted. Names and bill data are stored on this device until reset; storage failure is visible. No login, payment, cloud synchronization or deployment was performed.
+Synthetic tests do not prove all practical OCR layouts. Real-photo noise and missing totals need manual correction. Only Chromium desktop/mobile viewport emulation was exercised; no physical phone camera, Safari or Firefox acceptance is claimed. Images are not persisted. Names and bill data are stored on this device until reset; storage failure is visible. No login, payment or cloud synchronization is provided.
+
+## Deployment verification
+
+The public `main` branch at `9481d04` was pushed to `https://github.com/Ryanrc03/CheckMates` as a new root snapshot, so the original unredacted receipt is absent from remote history. Vercel production deployment `dpl_2FQzwVn75n5srGrQQzQcAq7t5TLB` is ready at https://checkmates-pi.vercel.app. The public homepage, OCR manifest, worker and English model returned HTTP 200. A fresh browser session uploaded `clear-cafe.png` to the deployed site and read Soup as $8.25 through the real worker. GitHub auto-deploy is not connected: Vercel reported that this account needs a GitHub Login Connection. Subsequent changes require CLI deployment until that connection is added.

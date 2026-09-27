@@ -1,5 +1,7 @@
 # CheckMates
 
+[Live demo](https://checkmates-pi.vercel.app) ? [Source on GitHub](https://github.com/Ryanrc03/CheckMates)
+
 A mobile-first receipt splitter: photo → real OCR → review → friends → assignments → exact amounts and a copyable summary. English interface, USD, no account or payment processing.
 
 ## Run locally
