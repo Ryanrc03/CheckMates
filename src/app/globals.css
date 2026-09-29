@@ -214,3 +214,22 @@ h2 { font-size: 18px; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { *, *:before, *:after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 
 .friend-name-group { flex: 1; min-width: 0; }.friend-visible-name { display: block; overflow-wrap: anywhere; font-size: 14px; font-weight: 600; padding: 4px 10px; }.friend-name-group input { font-size: 12px; border: 1px solid #0002; }.friend-row { align-items: start; }
+
+.photo-adjustment .step-heading { margin-bottom: 20px; }
+.adjustment-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+.adjustment-panels > div { min-width: 0; padding: 12px; border: 1px solid #e6dece; border-radius: 16px; background: #fffdf7; text-align: center; }
+.adjustment-panels h2 { font-size: 13px; margin-bottom: 10px; }
+.adjustment-image-wrap { position: relative; display: inline-block; max-width: 100%; background: #eee8dc; }
+.adjustment-image-wrap img { display: block; max-width: 100%; max-height: 360px; width: auto; height: auto; }
+.corner-layer { position: absolute; inset: 0; }
+.corner-layer svg { width: 100%; height: 100%; position: absolute; inset: 0; pointer-events: none; }
+.corner-layer polygon { fill: #b9432a1a; stroke: #b9432a; stroke-width: .6; vector-effect: non-scaling-stroke; }
+.corner-handle { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 3px solid white; background: #b9432a; box-shadow: 0 1px 7px #302b2570; transform: translate(-50%, -50%); touch-action: none; z-index: 1; }
+.corner-handle:focus-visible { outline: 3px solid #386e59; outline-offset: 2px; }
+.adjustment-controls, .adjustment-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.adjustment-controls [data-slot=button], .adjustment-actions [data-slot=button], .adjustment-actions .photo-input { font-size: 12px; }
+.adjustment-controls label { display: flex; align-items: center; gap: 5px; font-size: 12px; width: 100%; }
+.adjustment-controls input { width: 70px; min-height: 44px; border: 1px solid #d5ccbd; border-radius: 9px; padding: 6px; background: #fffdf8; font-size: 16px; }
+.adjustment-actions > :first-child { width: 100%; }
+.adjustment-actions .photo-input { flex: 1 1 100%; }
+@media (max-width: 480px) { .adjustment-panels { grid-template-columns: 1fr; }.adjustment-image-wrap img { max-height: 300px; } }
