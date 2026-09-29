@@ -81,6 +81,7 @@ test("result explanation handles zero amounts and uncharged friend", async ({ pa
     await expect(card).toContainText("$0.00");
     await expect(card).toContainText("No tip added");
     await expect(card).not.toContainText("0 / 0");
+    await expect(card.locator(".breakdown-fee").last()).toHaveText(/Tip\s+No tip added/);
   }
   await expect(page.getByTestId("share-A")).toContainText("Burger");
   await expect(page.getByTestId("share-B")).toContainText("No items assigned");

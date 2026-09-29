@@ -4,7 +4,7 @@ import { formatMoney } from "@/lib/money";
 
 function FeeLine({ label, trace, personIndex }: { label: string; trace: AllocationTrace; personIndex: number }) {
   const part = trace.parts[personIndex];
-  if (trace.poolCents === 0 && label === "Tip") return <div className="breakdown-fee"><strong>Tip</strong><span>No tip added · {formatMoney(0)}</span></div>;
+  if (trace.poolCents === 0 && label === "Tip") return <div className="breakdown-fee breakdown-row"><strong>Tip</strong>{" "}<span>No tip added · {formatMoney(0)}</span></div>;
   return <div className="breakdown-fee">
     <div className="breakdown-row"><strong>{label}</strong><b>{formatMoney(part.cents)}</b></div>
     {trace.weightSum === "0" ? <p>No item subtotal to divide; {label.toLowerCase()} is {formatMoney(0)}.</p> : <>

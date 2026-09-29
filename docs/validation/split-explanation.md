@@ -12,6 +12,6 @@ The personal amount, composition bar and expanded explanation all come from `exp
 | Remove B, repair the unassigned item | A $19.54; B removed from result | Browser assignment test |
 | 375px and 1280px, keyboard expansion | No horizontal page overflow; details keyboard accessible | Browser viewport tests and screenshots |
 
-Local checks: `npm test` passed 57/57; `npm run lint` and `npm run build` exited successfully. The production-mode Playwright run passed 35/35, followed by one added long-content test that passed 1/1. The complete production suite should be rerun after the final review so its count includes the new test.
+Final local checks: `npm test` passed 57/57; `npm run lint` and `npm run build` exited successfully. The complete production-mode Playwright suite passed 36/36, including the long-content and zero-tip display cases. A read-only branch review found no Critical or Important issue; a zero-tip spacing issue was fixed and rerun RED→GREEN before this complete suite.
 
 An allocation difference of $0.00 proves that the edited bill's cents were fully distributed. It does not prove the receipt photo was read correctly; receipt review remains a separate step.
