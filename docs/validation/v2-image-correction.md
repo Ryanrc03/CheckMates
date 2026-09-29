@@ -1,6 +1,6 @@
 # V2-A 动态图片校正验证记录
 
-日期：2026-09-28。开发分支：`feat/v2-image-first`。基线：`main@223d1c3`，应用代码与已认可的 MVP 相同。当前为本地 review 版本，未合入主分支、未推送、未部署。
+日期：2026-09-28 至 29。开发分支：`feat/v2-image-first`。为避免公开已回滚的旧 V2 实验提交，发布分支 `release/v2-image-first` 从远端 MVP `cc06071` 开始，仅摘取经 review 的 V2-A 实现与设计。已推送 GitHub `main@c8a34f8` 并部署到 [CheckMates](https://checkmates-pi.vercel.app)。
 
 ## 本阶段交付
 
@@ -37,6 +37,8 @@ npx playwright test
 ```
 
 本轮 `npm test`：54 个测试、10 个文件通过；`npm run lint` 与 `npm run build` 通过。生产模式浏览器测试 29 项全部通过，用时约 51.9 秒，包括照片调整、13.4° 实测角度、梯形边界、Worker 调用、换图、键盘与拖动四角、OCR 交接，以及编辑保护、失败与取消回退、从首页替换、同图参数保留、预览就绪和参与者保留。旧 OCR 测试的等待条件与新增调整步骤匹配；拖动测试先将角点滚入视口，再发送真实鼠标事件。
+
+发布分支重新运行同一套代码：54/54 单元测试、29/29 浏览器测试、lint 和构建均通过。Vercel 预览部署 `dpl_Fp4cJDsrWX7wHgUcQk9QUKU2APKv` 的首页、OCR manifest、worker 和英文模型均返回 HTTP 200。正式部署 `dpl_5T2ibbYmApcJiBbTt8QmQHD7uQaJ` 已绑定公开域名；页面及上述资源均返回 HTTP 200。线上 Chromium 在 375px 视口上传 `clear-cafe.png`，先看到调整页，确认前无 OCR 请求；确认后真实浏览器 worker 将 Soup 识别为 $8.25。
 
 ## 仍需完成的验收
 

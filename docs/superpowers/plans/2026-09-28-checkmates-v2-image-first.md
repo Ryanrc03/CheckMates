@@ -10,7 +10,7 @@
 
 **Spec:** [2026-09-28-checkmates-v2-image-first-design.md](../specs/2026-09-28-checkmates-v2-image-first-design.md) §1–4、§5 V2-A、§6 图片校正。
 
-**执行状态（2026-09-28）：** V2-A 的本地实现与桌面浏览器回归已完成，证据见[验证记录](../../validation/v2-image-correction.md)。真实 iPhone/Android、完整真实照片集仍未验收，因此尚未发布。V2-B 等待 V2-A demo review 后另起任务。
+**执行状态（2026-09-29）：** V2-A 的本地回归与线上冒烟测试已完成，已发布到 [CheckMates](https://checkmates-pi.vercel.app)；证据见[验证记录](../../validation/v2-image-correction.md)。真实 iPhone/Android 与完整真实照片集仍未验收。V2-B 菜品识别另起任务。
 
 ## Global Constraints
 

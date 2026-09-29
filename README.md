@@ -2,7 +2,7 @@
 
 [Live demo](https://checkmates-pi.vercel.app) ? [Source on GitHub](https://github.com/Ryanrc03/CheckMates)
 
-A mobile-first receipt splitter: photo → real OCR → review → friends → assignments → exact amounts and a copyable summary. English interface, USD, no account or payment processing.
+A mobile-first receipt splitter: photo → adjustable correction → real OCR → review → friends → assignments → exact amounts and a copyable summary. English interface, USD, no account or payment processing.
 
 ## Run locally
 
@@ -32,6 +32,7 @@ npm start
 - `src/store/useBillStore.ts`: Zustand actions, validated versioned recovery, and reset.
 - `src/lib/money.ts`, `split.ts`, `share.ts`: pure integer-cent calculations and summary text.
 - `src/lib/ocr/`: image decoding, real Tesseract worker lifecycle, conservative text parsing, and printed-total reconciliation.
+- `src/lib/receipt-image/`: per-photo tilt and page-boundary suggestions, perspective correction, and manual adjustment before OCR.
 - `src/types/`: confirmed bills, unconfirmed receipt drafts, and raw editor state.
 - `tests/e2e/`: full user journeys and actual Chromium OCR, including failure recovery.
 - `tests/fixtures/receipts/`: redacted real photo, explicit synthetic engine fixtures, human annotations and provenance.
@@ -40,7 +41,7 @@ Amounts are nonnegative safe integer cents. Shared items divide evenly; leftover
 
 ## Real OCR and privacy
 
-JPEG/PNG/WebP files up to 15 MiB are decoded in the browser; working images are downscaled to at most six million pixels. Explicit 90° rotation and retry are available. Photos never go to an OCR backend, and are not stored in localStorage.
+JPEG/PNG/WebP files up to 15 MiB are decoded in the browser. Each photo gets its own correction preview before OCR; users can adjust four corners, fine-tune the angle, rotate 90°, or keep the original. The confirmed image is limited to six million pixels. Photos never go to an OCR backend, and are not stored in localStorage.
 
 The engine is Tesseract.js **6.0.1**, locked core **6.1.2**, and English model package `@tesseract.js-data/eng` **1.0.0**, `4.0.0_best_int`. `npm run prepare:ocr` copies worker/WASM/traineddata files from installed packages and emits SHA-256, source and license metadata in `public/ocr/manifest.json`. See [OCR assets](docs/ocr-assets.md).
 
@@ -56,4 +57,4 @@ The `bitesplit-session` localStorage entry has schema version 1. It stores items
 
 See [verification record](docs/verification.md) for exact checks, real-photo extraction/corrections, and production timing. Two typeset images exercise the actual OCR engine and are **not** real-photo accuracy evidence. The redacted Line Thai Cafe photograph is separately tested end to end. The requested three-photo corpus is not complete; an attempted additional licensed source download returned HTTP 429.
 
-Clear printed English restaurant receipts are the supported target. Perspective, textured backgrounds, blurry text, handwritten tips, foreign currencies, multilingual receipts, discounts and complex service fees may require manual correction. No automatic quantity multiplication, currency conversion, payment, cloud sync or account is provided.
+Clear printed English restaurant receipts are the supported target. Automatic page-boundary detection is conservative; weak edges, folds, textured backgrounds, blurry text, handwritten tips, foreign currencies, multilingual receipts, discounts and complex service fees may require manual correction. Real-phone performance and a broader real-photo accuracy set remain to be validated. No automatic quantity multiplication, currency conversion, payment, cloud sync or account is provided.
