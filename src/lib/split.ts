@@ -35,6 +35,49 @@ export function allocateCents(total: number, weights: number[]): number[] {
   return allocateCentsDetailed(total, weights).parts.map(part => part.cents);
 }
 
+/**
+ * Divides an amount equally. The first extra cent goes to `start`, then continues through the list,
+ * so successive pools keep rotating and nobody collects every leftover cent.
+ */
+export function allocateEvenlyFrom(total: number, count: number, start: number): { trace: AllocationTrace; next: number } {
+  assertCents(total, "Amount");
+  if (!Number.isSafeInteger(count) || count <= 0) throw new Error("Add at least one person.");
+  const baseCents = Number(BigInt(total) / BigInt(count));
+  const leftover = total - baseCents * count;
+  const parts = Array.from({ length: count }, (_, index) => {
+    const extraCent = (index - start + count) % count < leftover;
+    return { weight: 1, baseCents, extraCent, cents: baseCents + (extraCent ? 1 : 0) };
+  });
+  return { trace: { poolCents: total, weightSum: String(count), parts }, next: (start + leftover) % count };
+}
+
+function explainEvenSplit(bill: Bill, ids: string[]): BillBreakdown {
+  let subtotalCents = 0;
+  for (const item of bill.items) {
+    assertCents(item.priceCents, "Item price");
+    if (item.personIds.some((id) => !ids.includes(id))) throw new Error("An item refers to an unknown person.");
+    subtotalCents += item.priceCents;
+    assertCents(subtotalCents, "Subtotal");
+  }
+  if (subtotalCents === 0 && bill.taxCents + bill.tipCents > 0) throw new Error("Tax and tip require a nonzero item subtotal.");
+  const totalCents = subtotalCents + bill.taxCents + bill.tipCents;
+  assertCents(totalCents, "Total");
+  const subtotal = allocateEvenlyFrom(subtotalCents, ids.length, 0);
+  const tax = allocateEvenlyFrom(bill.taxCents, ids.length, subtotal.next);
+  const tip = allocateEvenlyFrom(bill.tipCents, ids.length, tax.next);
+  const result: SplitResult = {
+    subtotalCents,
+    taxCents: bill.taxCents,
+    tipCents: bill.tipCents,
+    totalCents,
+    people: bill.people.map((person, index) => {
+      const itemsCents = subtotal.trace.parts[index].cents; const taxCents = tax.trace.parts[index].cents; const tipCents = tip.trace.parts[index].cents;
+      return { ...person, itemsCents, taxCents, tipCents, totalCents: itemsCents + taxCents + tipCents };
+    }),
+  };
+  return { result, items: [], tax: tax.trace, tip: tip.trace, subtotal: subtotal.trace };
+}
+
 export function explainSplitBill(bill: Bill): BillBreakdown {
   assertCents(bill.taxCents, "Tax");
   assertCents(bill.tipCents, "Tip");
@@ -42,6 +85,7 @@ export function explainSplitBill(bill: Bill): BillBreakdown {
   if (bill.items.length === 0) throw new Error("Add at least one item.");
   const ids = bill.people.map((person) => person.id);
   if (new Set(ids).size !== ids.length) throw new Error("Person IDs must be unique.");
+  if (bill.splitMode === "even") return explainEvenSplit(bill, ids);
   const itemTotals = ids.map(() => 0);
   const items: ItemAllocation[] = [];
   let subtotalCents = 0;
@@ -57,7 +101,7 @@ export function explainSplitBill(bill: Bill): BillBreakdown {
     assertCents(subtotalCents, "Subtotal");
     const allocation = allocateCentsDetailed(item.priceCents, selectedIndexes.map(() => 1));
     selectedIndexes.forEach((index, selectedIndex) => { itemTotals[index] += allocation.parts[selectedIndex].cents; });
-    items.push({ itemId: item.id, itemName: item.name, priceCents: item.priceCents, personIds: selectedIndexes.map(index => ids[index]), allocation });
+    items.push({ itemId: item.id, itemName: item.name, priceCents: item.priceCents, quantity: item.quantity ?? 1, personIds: selectedIndexes.map(index => ids[index]), allocation });
   }
 
   assertCents(subtotalCents, "Subtotal");

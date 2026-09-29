@@ -21,7 +21,7 @@ export function HomeStep({ onPhotoSelected, onDemo, busy, stage, progress, error
       <Button className="sample-button" variant="ghost" onClick={onDemo}>Try a sample bill <ArrowRight size={17}/></Button>
     </div>}
     <p className="privacy"><ShieldCheck size={15} /> No sign-up. No photo uploads to a server.</p>
-    <p className="fine-print">English receipts · USD · JPEG, PNG or WebP · Up to 15 MiB</p>
+    <p className="fine-print">English receipts · USD, EUR, GBP, CNY & more · JPEG, PNG or WebP · Up to 15 MiB</p>
     <div className="how-it-works"><span><b>01</b> Snap & check</span><span><b>02</b> Pick your people</span><span><b>03</b> Share the split</span></div>
   </section>;
 }
