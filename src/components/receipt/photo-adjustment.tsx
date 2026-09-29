@@ -5,24 +5,31 @@ import { PhotoInput } from "@/components/home/home-step";
 import type { Analysis } from "@/lib/receipt-image/analyze";
 import { isValidQuad, type Point, type Quad } from "@/lib/receipt-image/geometry";
 import { correctionBlob, renderCorrection, type Adjustment } from "@/lib/receipt-image/render";
+import { residualTextAngle } from "@/lib/receipt-image/suggest";
 
 const fullCorners: Quad = [{ x: 0.01, y: 0.01 }, { x: 0.99, y: 0.01 }, { x: 0.99, y: 0.99 }, { x: 0.01, y: 0.99 }];
 const cornerNames = ["Top left", "Top right", "Bottom right", "Bottom left"];
 
-export function PhotoAdjustment({ file, originalUrl, onSelect, onConfirm, onBack, onManual }: {
-  file: File; originalUrl: string; onSelect: (file: File) => void; onConfirm: (image: Blob) => void; onBack: () => void; onManual: () => void;
+export function PhotoAdjustment({ file, originalUrl, initialAdjustment, onAdjustmentChange, onSelect, onConfirm, onBack, onManual }: {
+  file: File; originalUrl: string; initialAdjustment?: Adjustment; onAdjustmentChange: (file: File, value: Adjustment) => void; onSelect: (file: File) => void; onConfirm: (image: Blob) => void; onBack: () => void; onManual: () => void;
 }) {
   const [image, setImage] = useState<ImageBitmap | null>(null);
-  const [adjustment, setAdjustment] = useState<Adjustment>({ corners: null, angle: 0, quarterTurns: 0 });
-  const [analysisStatus, setAnalysisStatus] = useState("Analyzing this photo…");
+  const [adjustment, setAdjustment] = useState<Adjustment>(initialAdjustment ?? { corners: null, angle: 0, quarterTurns: 0 });
+  const [analysisStatus, setAnalysisStatus] = useState(initialAdjustment ? "Previous adjustment loaded. Check the preview." : "Analyzing this photo…");
   const [orientedUrl, setOrientedUrl] = useState<string | null>(null);
   const [correctedUrl, setCorrectedUrl] = useState<string | null>(null);
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
+  const [loadedPreviewUrl, setLoadedPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const imageRef = useRef<ImageBitmap | null>(null);
   const generation = useRef(0);
-  const userEdited = useRef(false);
+  const userEdited = useRef(Boolean(initialAdjustment));
+  const adjustmentKey = JSON.stringify(adjustment);
+  const previewReady = previewKey === adjustmentKey && !!correctedUrl && loadedPreviewUrl === correctedUrl;
   const fileError = !["image/jpeg", "image/png", "image/webp"].includes(file.type) ? "Choose a JPEG, PNG, or WebP photo. HEIC and PDF are not supported." : file.size > 15 * 1024 * 1024 ? "This photo exceeds 15 MiB. Resize it or choose a smaller photo." : null;
+
+  useEffect(() => { onAdjustmentChange(file, adjustment); }, [adjustment, file, onAdjustmentChange]);
 
   useEffect(() => {
     let active = true;
@@ -36,7 +43,7 @@ export function PhotoAdjustment({ file, originalUrl, onSelect, onConfirm, onBack
   }, [file, fileError]);
 
   useEffect(() => {
-    if (!image) return;
+    if (!image || userEdited.current) return;
     let active = true;
     let worker: Worker | null = null;
     try {
@@ -47,7 +54,7 @@ export function PhotoAdjustment({ file, originalUrl, onSelect, onConfirm, onBack
         if (!active || userEdited.current) return;
         if (!event.data.analysis) { setAnalysisStatus("Automatic correction is unavailable. You can adjust the photo or use the original."); setError(event.data.error ?? "Photo analysis failed."); return; }
         const analysis = event.data.analysis;
-        setAdjustment(previous => ({ ...previous, corners: analysis.corners, angle: analysis.corners ? 0 : analysis.angleReliable ? analysis.angle : 0 }));
+        setAdjustment(previous => ({ ...previous, corners: analysis.corners, angle: residualTextAngle(analysis, bitmap.width, bitmap.height) }));
         setAnalysisStatus(analysis.boundaryReliable ? "Page edges found. Check that every line is inside the corners." : analysis.angleReliable ? Math.abs(analysis.angle) < 0.5 ? "The photo appears straight. Check the preview before recognition." : `Suggested tilt correction: ${analysis.angle.toFixed(1)}°. Check the preview.` : "Automatic correction is uncertain. Adjust the corners or use the original photo.");
       };
       worker.onerror = () => { if (active) { setAnalysisStatus("Automatic correction is unavailable. You can adjust the photo or use the original."); setError("Photo analysis failed."); } };
@@ -61,6 +68,7 @@ export function PhotoAdjustment({ file, originalUrl, onSelect, onConfirm, onBack
   useEffect(() => {
     if (!image) return;
     let active = true;
+    const key = JSON.stringify(adjustment);
     const timer = setTimeout(() => {
       try {
         void Promise.all([
@@ -70,9 +78,10 @@ export function PhotoAdjustment({ file, originalUrl, onSelect, onConfirm, onBack
           if (!active) return;
           setOrientedUrl(previous => { if (previous) URL.revokeObjectURL(previous); return URL.createObjectURL(source); });
           setCorrectedUrl(previous => { if (previous) URL.revokeObjectURL(previous); return URL.createObjectURL(corrected); });
+          setPreviewKey(key);
         }).catch(failure => { if (active) setError(failure instanceof Error ? failure.message : "Could not preview this photo."); });
       } catch (failure) { if (active) setError(failure instanceof Error ? failure.message : "Could not preview this photo."); }
-    }, 30);
+    }, 100);
     return () => { active = false; clearTimeout(timer); };
   }, [image, adjustment]);
 
@@ -98,7 +107,7 @@ export function PhotoAdjustment({ file, originalUrl, onSelect, onConfirm, onBack
     changeCorner(index, { x: Math.max(0, Math.min(1, current.x + delta.x)), y: Math.max(0, Math.min(1, current.y + delta.y)) });
   }
   async function confirm() {
-    if (!image || busy) return;
+    if (!image || busy || !previewReady) return;
     const current = generation.current; setBusy(true); setError(null);
     try {
       const output = renderCorrection(image, adjustment, 6000000);
@@ -117,17 +126,17 @@ export function PhotoAdjustment({ file, originalUrl, onSelect, onConfirm, onBack
         <img src={orientedUrl ?? originalUrl} alt="Original receipt photo" />
         {adjustment.corners && orientedUrl && <div className="corner-layer" aria-label="Receipt corners"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points={adjustment.corners.map(point => `${point.x * 100},${point.y * 100}`).join(" ")} /></svg>{adjustment.corners.map((point, index) => <button key={index} type="button" className="corner-handle" style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }} aria-label={`${cornerNames[index]} corner`} onPointerDown={event => event.currentTarget.setPointerCapture(event.pointerId)} onPointerMove={event => dragCorner(event, index)} onKeyDown={event => moveCorner(event, index)} />)}</div>}
       </div></div>
-      <div><h2>After correction</h2><div className="adjustment-image-wrap"><img src={correctedUrl ?? orientedUrl ?? originalUrl} alt="Photo that will be used for recognition" /></div></div>
+      <div><h2>After correction</h2><div className="adjustment-image-wrap"><img src={correctedUrl ?? orientedUrl ?? originalUrl} alt="Photo that will be used for recognition" onLoad={event => setLoadedPreviewUrl(event.currentTarget.currentSrc)} /></div></div>
     </div>
     <div className="adjustment-controls">
       <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = false; setError(null); setAnalysisStatus("Analyzing this photo…"); setAdjustment(previous => ({ ...previous, quarterTurns: (previous.quarterTurns + 1) % 4, corners: null, angle: 0 })); }}>Rotate 90°</Button>
       <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = true; setError(null); setAnalysisStatus("Manual adjustment selected. Check the preview."); setAdjustment(previous => ({ ...previous, corners: previous.corners ?? fullCorners, angle: 0 })); }}>Adjust four corners</Button>
-      <label>Fine tune angle <input aria-label="Fine tune angle" type="number" min={-45} max={45} step="0.1" value={adjustment.angle} onChange={event => { userEdited.current = true; setAnalysisStatus("Manual adjustment selected. Check the preview."); setAdjustment(previous => ({ ...previous, angle: Math.max(-45, Math.min(45, Number(event.target.value) || 0)) })); }} /> degrees</label>
+      <label>Fine tune angle <input aria-label="Fine tune angle" type="number" min={-45} max={45} step="0.1" disabled={busy} value={adjustment.angle} onChange={event => { userEdited.current = true; setAnalysisStatus("Manual adjustment selected. Check the preview."); setAdjustment(previous => ({ ...previous, angle: Math.max(-45, Math.min(45, Number(event.target.value) || 0)) })); }} /> degrees</label>
       <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = true; setError(null); setAnalysisStatus("Using the original photo."); setAdjustment(previous => ({ corners: null, angle: 0, quarterTurns: previous.quarterTurns })); }}>Use original photo</Button>
       <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = true; setError(null); setAnalysisStatus("Using the original photo."); setAdjustment({ corners: null, angle: 0, quarterTurns: 0 }); }}>Reset adjustments</Button>
     </div>
     <div className="adjustment-actions">
-      <Button type="button" disabled={!image || busy || analysisStatus === "Analyzing this photo…"} onClick={() => void confirm()}>{busy ? "Preparing photo…" : "Use this photo and recognize"}</Button>
+      <Button type="button" disabled={!image || busy || !previewReady || analysisStatus === "Analyzing this photo…"} onClick={() => void confirm()}>{busy ? "Preparing photo…" : "Use this photo and recognize"}</Button>
       <PhotoInput onSelect={onSelect} label="Choose another receipt photo" />
       <Button type="button" variant="ghost" onClick={onBack}>Back</Button>
       <Button type="button" variant="ghost" onClick={onManual}>Enter items manually</Button>

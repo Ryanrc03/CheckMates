@@ -81,9 +81,11 @@ test("model failure and timeout both allow retry with a real worker", async ({ p
   await page.getByRole("button", { name: "Back", exact: true }).click();
   await page.clock.install();
   await page.route("**/ocr/worker.min.js", async route => { await new Promise(r => setTimeout(r, 2500)); await route.continue().catch(() => {}); });
+  page.on("dialog", dialog => dialog.accept());
   await page.getByLabel("Upload a receipt", { exact: true }).setInputFiles(fixture("clear-cafe.png")); await useAdjustedPhoto(page); await expect(page.getByText("Loading recognition resources")).toBeVisible();
   await page.clock.fastForward(120001); await expect(page.locator("main").getByRole("alert")).toContainText("120 seconds");
-  await page.unroute("**/ocr/worker.min.js"); await page.getByRole("button", { name: "Retry recognition" }).click(); await useAdjustedPhoto(page);
+  await expect(page.getByLabel("Price for Burger")).toHaveValue("14.95");
+  await page.unroute("**/ocr/worker.min.js"); await page.getByLabel("Reattach receipt photo").setInputFiles(fixture("clear-cafe.png")); await useAdjustedPhoto(page);
   await expect(page.getByLabel("Price for Soup")).toHaveValue("8.25", { timeout: 120000 });
 });
 test("blurred receipt exposes manual review without sample substitution", async ({ page }) => {

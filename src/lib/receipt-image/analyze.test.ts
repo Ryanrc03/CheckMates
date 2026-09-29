@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { analyzeReceiptImage } from "./analyze";
+import { residualTextAngle } from "./suggest";
 
 function raster(width: number, height: number, sample: (x: number, y: number) => number): ImageData {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -44,6 +45,21 @@ describe("per-photo analysis", () => {
     expect(result.corners![0].x).toBeCloseTo(75 / 320, 1);
     expect(result.corners![3].x).toBeCloseTo(35 / 320, 1);
     expect(result.corners![2].y).toBeGreaterThan(0.91);
+  });
+
+  it("keeps the residual text correction when level paper has tilted text", () => {
+    const radians = 13 * Math.PI / 180, co = Math.cos(radians), si = Math.sin(radians);
+    const image = raster(360, 400, (x, y) => {
+      if (x < 40 || x > 320 || y < 25 || y > 375) return 20;
+      const u = (x - 180) * co + (y - 200) * si;
+      const v = -(x - 180) * si + (y - 200) * co;
+      if (Math.abs(u) < 95 && [-90, -50, -10, 30, 70].some(row => Math.abs(v - row) < 3) && Math.floor((u + 95) / 23) % 5 !== 4) return 15;
+      return 245;
+    });
+    const analysis = analyzeReceiptImage(image);
+    expect(analysis.boundaryReliable).toBe(true);
+    expect(analysis.angleReliable).toBe(true);
+    expect(residualTextAngle(analysis, image.width, image.height)).toBeCloseTo(13, 0);
   });
 
   it("does not crop an all-white image with no visible page boundary", () => {

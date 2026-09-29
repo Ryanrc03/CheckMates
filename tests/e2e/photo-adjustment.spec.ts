@@ -13,7 +13,7 @@ test("each uploaded receipt is adjusted before recognition and uses the confirme
   await expect(page.getByLabel("Price for Burger")).toHaveValue("14.95", { timeout: 120000 });
 });
 
-test("changing photos starts a new analysis and invalid corners do not replace the previous preview", async ({ page }) => {
+test("changing photos starts a new analysis and recognizes only the chosen photo", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("Upload a receipt", { exact: true }).setInputFiles("tests/fixtures/receipts/clear-diner.png");
   await expect(page.getByRole("heading", { name: "Adjust your photo" })).toBeVisible();
@@ -75,6 +75,108 @@ test("back from a replacement photo leaves the edited receipt and its old image 
   await page.getByRole("button", { name: "Back", exact: true }).click();
   await expect(page.getByLabel("Price for Burger")).toHaveValue("12.34");
   expect(await page.getByRole("img", { name: /original receipt/i }).getAttribute("src")).toBe(oldImage);
+});
+
+test("manual entry from a replacement photo requires confirmation", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Upload a receipt", { exact: true }).setInputFiles("tests/fixtures/receipts/clear-diner.png");
+  await page.getByRole("button", { name: "Use this photo and recognize" }).click();
+  await expect(page.getByLabel("Price for Burger")).toHaveValue("14.95", { timeout: 120000 });
+  await page.getByLabel("Price for Burger").fill("12.34");
+  await page.getByLabel("Reattach receipt photo").setInputFiles("tests/fixtures/receipts/clear-cafe.png");
+  page.once("dialog", dialog => dialog.dismiss());
+  await page.getByRole("button", { name: "Enter items manually" }).click();
+  await expect(page.getByRole("heading", { name: "Adjust your photo" })).toBeVisible();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page.getByLabel("Price for Burger")).toHaveValue("12.34");
+});
+
+test("failed replacement recognition preserves the previous photo and edits", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Upload a receipt", { exact: true }).setInputFiles("tests/fixtures/receipts/clear-diner.png");
+  await page.getByRole("button", { name: "Use this photo and recognize" }).click();
+  await expect(page.getByLabel("Price for Burger")).toHaveValue("14.95", { timeout: 120000 });
+  const oldImage = await page.getByRole("img", { name: /original receipt/i }).getAttribute("src");
+  await page.getByLabel("Price for Burger").fill("12.34");
+  await page.getByLabel("Reattach receipt photo").setInputFiles("tests/fixtures/receipts/blank.png");
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Use this photo and recognize" }).click();
+  await expect(page.locator("main").getByRole("alert")).toContainText("No text found", { timeout: 120000 });
+  await expect(page.getByLabel("Price for Burger")).toHaveValue("12.34");
+  expect(await page.getByRole("img", { name: /original receipt/i }).getAttribute("src")).toBe(oldImage);
+});
+
+test("canceling replacement recognition preserves the previous photo and edits", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Upload a receipt", { exact: true }).setInputFiles("tests/fixtures/receipts/clear-diner.png");
+  await page.getByRole("button", { name: "Use this photo and recognize" }).click();
+  await expect(page.getByLabel("Price for Burger")).toHaveValue("14.95", { timeout: 120000 });
+  const oldImage = await page.getByRole("img", { name: /original receipt/i }).getAttribute("src");
+  await page.getByLabel("Price for Burger").fill("12.34");
+  await page.route("**/ocr/worker.min.js", async route => { await new Promise(resolve => setTimeout(resolve, 1500)); await route.continue().catch(() => {}); });
+  await page.getByLabel("Reattach receipt photo").setInputFiles("tests/fixtures/receipts/clear-cafe.png");
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Use this photo and recognize" }).click();
+  await page.getByRole("button", { name: "Cancel recognition" }).click();
+  await expect(page.getByLabel("Price for Burger")).toHaveValue("12.34");
+  expect(await page.getByRole("img", { name: /original receipt/i }).getAttribute("src")).toBe(oldImage);
+});
+
+test("replacing a receipt from Home returns to the old draft if recognition fails", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Upload a receipt", { exact: true }).setInputFiles("tests/fixtures/receipts/clear-diner.png");
+  await page.getByRole("button", { name: "Use this photo and recognize" }).click();
+  await expect(page.getByLabel("Price for Burger")).toHaveValue("14.95", { timeout: 120000 });
+  const oldImage = await page.getByRole("img", { name: /original receipt/i }).getAttribute("src");
+  await page.getByLabel("Price for Burger").fill("12.34");
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page.getByLabel("Upload a receipt", { exact: true }).setInputFiles("tests/fixtures/receipts/blank.png");
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Use this photo and recognize" }).click();
+  await expect(page.locator("main").getByRole("alert")).toContainText("No text found", { timeout: 120000 });
+  await expect(page.getByLabel("Price for Burger")).toHaveValue("12.34");
+  expect(await page.getByRole("img", { name: /original receipt/i }).getAttribute("src")).toBe(oldImage);
+});
+
+test("reopening the same photo keeps its confirmed adjustment", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Upload a receipt", { exact: true }).setInputFiles("tests/fixtures/receipts/clear-diner.png");
+  await page.getByLabel("Fine tune angle").fill("1");
+  await page.getByRole("button", { name: "Use this photo and recognize" }).click();
+  await expect(page.getByLabel("Price for Burger")).toHaveValue("14.95", { timeout: 120000 });
+  await page.getByRole("button", { name: "Adjust or rotate photo" }).click();
+  await expect(page.getByLabel("Fine tune angle")).toHaveValue("1");
+});
+
+test("confirmation waits until the latest corrected preview is visible", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Upload a receipt", { exact: true }).setInputFiles("tests/fixtures/receipts/clear-diner.png");
+  const confirm = page.getByRole("button", { name: "Use this photo and recognize" });
+  await expect(confirm).toBeEnabled();
+  const previous = await page.getByRole("img", { name: "Photo that will be used for recognition" }).getAttribute("src");
+  await page.getByLabel("Fine tune angle").fill("7");
+  await expect(confirm).toBeDisabled();
+  await expect(page.getByRole("img", { name: "Photo that will be used for recognition" })).not.toHaveAttribute("src", previous!);
+  await expect(confirm).toBeEnabled();
+});
+
+test("successful re-recognition keeps the existing people", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Upload a receipt", { exact: true }).setInputFiles("tests/fixtures/receipts/clear-diner.png");
+  await page.getByRole("button", { name: "Use this photo and recognize" }).click();
+  await expect(page.getByLabel("Price for Burger")).toHaveValue("14.95", { timeout: 120000 });
+  const review = page.getByRole("checkbox"); if (await review.count()) await review.check();
+  await page.getByRole("button", { name: "Add friends" }).click();
+  await page.getByLabel("Friend's name").fill("Alex");
+  await page.getByLabel("Friend's name").press("Enter");
+  await page.getByRole("button", { name: "Back to receipt" }).click();
+  await page.getByLabel("Reattach receipt photo").setInputFiles("tests/fixtures/receipts/clear-cafe.png");
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Use this photo and recognize" }).click();
+  await expect(page.getByLabel("Price for Soup")).toHaveValue("8.25", { timeout: 120000 });
+  const nextReview = page.getByRole("checkbox"); if (await nextReview.count()) await nextReview.check();
+  await page.getByRole("button", { name: "Add friends" }).click();
+  await expect(page.getByLabel("Rename Alex")).toBeVisible();
 });
 
 test("a tilted photo gets its own measured angle before OCR", async ({ page }) => {
