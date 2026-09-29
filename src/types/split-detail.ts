@@ -6,7 +6,9 @@ export type ItemAllocation = {
   itemId: string;
   itemName: string;
   priceCents: number;
+  quantity: number;
   personIds: string[];
   allocation: AllocationTrace;
 };
-export type BillBreakdown = { result: SplitResult; items: ItemAllocation[]; tax: AllocationTrace; tip: AllocationTrace };
+/** In even mode, `items` is empty and `subtotal` divides the item subtotal equally. */
+export type BillBreakdown = { result: SplitResult; items: ItemAllocation[]; tax: AllocationTrace; tip: AllocationTrace; subtotal?: AllocationTrace };

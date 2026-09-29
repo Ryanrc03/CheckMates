@@ -1,7 +1,8 @@
-import type { PersonShare } from "@/types/bill";
-import { formatMoney } from "@/lib/money";
+import type { CurrencyCode, PersonShare } from "@/types/bill";
+import { DEFAULT_CURRENCY, formatMoney as format } from "@/lib/money";
 
-export function ShareComposition({ share, maxTotalCents }: { share: PersonShare; maxTotalCents: number }) {
+export function ShareComposition({ share, maxTotalCents, currency = DEFAULT_CURRENCY }: { share: PersonShare; maxTotalCents: number; currency?: CurrencyCode }) {
+  const formatMoney = (cents: number) => format(cents, currency);
   const amount = maxTotalCents === 0 ? 0 : share.totalCents / maxTotalCents * 100;
   const parts = [
     { label: "Items", cents: share.itemsCents, className: "composition-items" },

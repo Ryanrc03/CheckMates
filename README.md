@@ -2,7 +2,7 @@
 
 [Live demo](https://checkmates-pi.vercel.app) ? [Source on GitHub](https://github.com/Ryanrc03/CheckMates)
 
-A mobile-first receipt splitter: photo → adjustable correction → real OCR → review → friends → assignments → exact amounts, item-by-item explanations, and a copyable summary. English interface, USD, no account or payment processing.
+A mobile-first receipt splitter: photo → adjustable correction → real OCR → review → friends → assignments → exact amounts, item-by-item explanations, a copyable summary, and a share link with QR code. English interface, 11 two-decimal currencies (USD by default), no account or payment processing.
 
 ## Run locally
 
@@ -32,7 +32,8 @@ npm start
 
 - `src/components/`: one five-step client wizard and reusable controls.
 - `src/store/useBillStore.ts`: Zustand actions, validated versioned recovery, and reset.
-- `src/lib/money.ts`, `split.ts`, `share.ts`: pure integer-cent calculations, exact allocation details and summary text.
+- `src/lib/money.ts`, `split.ts`, `share.ts`: pure integer-cent calculations, percentages, quantities, currencies, exact allocation details and summary text.
+- `src/lib/share-link.ts`: encodes the final amounts into a validated, read-only `#share=` link.
 - `src/lib/ocr/`: image decoding, real Tesseract worker lifecycle, conservative text parsing, and printed-total reconciliation.
 - `src/lib/receipt-image/`: per-photo tilt and page-boundary suggestions, perspective correction, and manual adjustment before OCR.
 - `src/types/`: confirmed bills, unconfirmed receipt drafts, and raw editor state.
@@ -40,6 +41,14 @@ npm start
 - `tests/fixtures/receipts/`: redacted real photo, explicit synthetic engine fixtures, human annotations and provenance.
 
 Amounts are nonnegative safe integer cents. Shared items divide evenly; leftover cents follow the bill's stable participant order, regardless of click order. Tax and tip are allocated independently in proportion to item shares using exact BigInt largest remainders. No rounding loss: the individual item, tax, tip and grand totals reconcile. A zero subtotal with nonzero extras is rejected.
+
+Each receipt line has a quantity (1–99) and a unit price; the line total is their exact product. Tax and the added tip can be typed as an amount or as a percentage of the items subtotal (up to three decimals, e.g. 8.875%); percentages round half a cent up and are remembered, so later price edits recalculate them. Quick tip buttons set 10/15/18/20%.
+
+**Split evenly** skips item assignment: the items subtotal, tax and tip are each divided by the number of friends, and leftover cents continue round-robin from one pool to the next, so shares never differ by more than one cent. On the split page, **Everyone** selects all friends and a second tap clears the item again.
+
+## Sharing results
+
+**Copy link** and the QR code open a read-only page with each person's amounts and the bill totals. The data lives in the URL fragment (`#share=…`), which browsers do not send to the server; it contains names and amounts only, never items or photos. Opened links are validated (all totals must reconcile) and never replace the viewer's own saved bill. Anyone who has the link can read those names and amounts.
 
 ## Real OCR and privacy
 
@@ -53,10 +62,10 @@ OCR creates a draft, never a final bill. Missing prices/tax remain blank. Sugges
 
 ## Recovery
 
-The `bitesplit-session` localStorage entry has schema version 1. It stores items, names, assignments, current step, source filename, raw OCR draft/warnings, and unfinished editor text. It excludes photos, object URLs, worker state, progress, and calculated results. After refresh, reattach a photo to preview it without replacing edits. Recognition must be explicitly restarted. Invalid cache is discarded safely; a failed write shows a warning but editing continues. Start a new bill replaces the saved session with an empty one.
+The `bitesplit-session` localStorage entry has schema version 1. It stores items (with quantities), names, assignments, split mode, currency, percentage tax/tip rates, current step, source filename, raw OCR draft/warnings, and unfinished editor text. It excludes photos, object URLs, worker state, progress, and calculated results. After refresh, reattach a photo to preview it without replacing edits. Recognition must be explicitly restarted. Invalid cache is discarded safely; a failed write shows a warning but editing continues. Start a new bill replaces the saved session with an empty one.
 
 ## Verification and limits
 
 See [verification record](docs/verification.md) for exact checks, real-photo extraction/corrections, and production timing. Two typeset images exercise the actual OCR engine and are **not** real-photo accuracy evidence. The redacted Line Thai Cafe photograph is separately tested end to end. The requested three-photo corpus is not complete; an attempted additional licensed source download returned HTTP 429.
 
-Clear printed English restaurant receipts are the supported target. Automatic page-boundary detection is conservative; weak edges, folds, textured backgrounds, blurry text, handwritten tips, foreign currencies, multilingual receipts, discounts and complex service fees may require manual correction. Real-phone performance and a broader real-photo accuracy set remain to be validated. No automatic quantity multiplication, currency conversion, payment, cloud sync or account is provided.
+Clear printed English restaurant receipts are the supported target. Automatic page-boundary detection is conservative; weak edges, folds, textured backgrounds, blurry text, handwritten tips, foreign currencies, multilingual receipts, discounts and complex service fees may require manual correction. Real-phone performance and a broader real-photo accuracy set remain to be validated. OCR does not detect quantities; enter them on the review page. No currency conversion, zero-decimal currencies (such as JPY), payment, cloud sync or account is provided.
