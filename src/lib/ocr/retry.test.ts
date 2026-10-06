@@ -17,3 +17,12 @@ it("keeps conflicting scan prices unresolved even if one matches the total",()=>
  const d=parseReceiptEvidence({...primary,alternate:secondary});
  expect(d.items[0].priceCents).toBeNull();expect(d.items[0].details?.reviewCodes).toContain("ocr-price");
 });
+it("preserves missing-price dishes when another layout omits them",()=>{
+ const primary={text:"Soup $8.00\nRice\nSubtotal $10.00\nTax $0.00\nTotal $10.00",confidence:85};
+ const secondary={text:"Soup $8.00\nSubtotal $10.00\nTax $0.00\nTotal $10.00",confidence:90};
+ expect(parseReceiptEvidence(chooseReceiptCandidate(primary,secondary)).items.map(i=>i.name)).toContain("Rice");
+});
+it("clears the printed discount basis when scans disagree on the price",()=>{
+ const d=parseReceiptEvidence({text:"Soup $10.00\nDisc. -$1.00\nSubtotal $9.00\nTax $0.00\nTotal $9.00",confidence:85,alternate:{text:"Soup $12.00\nDisc. -$1.00\nSubtotal $11.00\nTax $0.00\nTotal $11.00",confidence:85}});
+ expect(d.items[0].priceCents).toBeNull();expect(d.items[0].details?.printedPriceCents).toBeNull();
+});

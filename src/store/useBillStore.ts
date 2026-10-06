@@ -7,7 +7,7 @@ import { availableStep, isBill, isDraft, receiptReady, migrateSession, validCent
 
 import { allocationPersonIds, validateItemAllocation } from "@/lib/item-allocation";
 
-const initial = (): BillSession => ({ bill: emptyBill(), step: "home", source: null, fileName: null, receiptDraft: null, receiptConfirmed: false, addedTipCents: 0, reviewNote: "", receiptEdit: null, allocationEdits: {} });
+const initial = (): BillSession => ({ bill: emptyBill(), step: "home", source: null, fileName: null, receiptDraft: null, receiptConfirmed: false, addedTipCents: 0, reviewNote: "", receiptEdit: null, allocationEdits: {}, unassignedDiscountsReviewed: false });
 const KEY = "bitesplit-session";
 type State = BillSession & {
   hasHydrated: boolean; storageError: string | null; error: string | null;
@@ -15,7 +15,7 @@ type State = BillSession & {
   saveReceiptEdit: (edit: ReceiptEdit) => void;
   startBill: (source: "demo" | "photo", fileName?: string) => void;
   setReceiptDraft: (draft: ReceiptDraft) => void;
-  confirmReceipt: (bill: Bill, review?: { addedTipCents: number; reviewNote: string }) => void;
+  confirmReceipt: (bill: Bill, review?: { addedTipCents: number; reviewNote: string; unassignedDiscountsReviewed?: boolean }) => void;
   updateItem: (id: string, patch: Partial<Pick<ReceiptItem, "name" | "priceCents">>) => void;
   addItem: () => void; removeItem: (id: string) => void;
   setExtras: (tax: number, tip: number) => void;
@@ -33,8 +33,8 @@ export function createBillStore(storage: StateStorage) {
   let writes = Promise.resolve();
   return create<State>((set, get) => {
     const persist = () => {
-      const { bill, step, source, fileName, receiptDraft, receiptConfirmed, addedTipCents, reviewNote, receiptEdit, allocationEdits } = get();
-      const value = JSON.stringify({ version: 2, state: { bill, step, source, fileName, receiptDraft, receiptConfirmed, addedTipCents, reviewNote, receiptEdit, allocationEdits } });
+      const { bill, step, source, fileName, receiptDraft, receiptConfirmed, addedTipCents, reviewNote, receiptEdit, allocationEdits, unassignedDiscountsReviewed } = get();
+      const value = JSON.stringify({ version: 2, state: { bill, step, source, fileName, receiptDraft, receiptConfirmed, addedTipCents, reviewNote, receiptEdit, allocationEdits, unassignedDiscountsReviewed } });
       try {
         const result = storage.setItem(KEY, value);
         if (result instanceof Promise) writes = writes.then(() => result).catch(() => { set({ storageError: "Changes cannot be saved on this device. Keep this tab open." }); });
@@ -65,8 +65,9 @@ export function createBillStore(storage: StateStorage) {
       },
       startBill: (source, fileName) => change({ ...initial(), source, fileName: fileName ?? null, bill: source === "demo" ? createMockBill() : emptyBill(), step: source === "demo" ? "receipt" : "home" }),
       saveReceiptEdit: receiptEdit => change({ receiptEdit }),
-      setReceiptDraft: receiptDraft => { if (isDraft(receiptDraft)) change({ receiptDraft, receiptEdit: null, receiptConfirmed: false, addedTipCents: 0, reviewNote: "", step: "receipt" }); },
+      setReceiptDraft: receiptDraft => { if (isDraft(receiptDraft)) change({ receiptDraft, receiptEdit: null, receiptConfirmed: false, addedTipCents: 0, reviewNote: "", unassignedDiscountsReviewed: false, step: "receipt" }); },
       confirmReceipt: (bill, review) => {
+        if(get().receiptDraft?.unassignedDiscounts?.length&&!review?.unassignedDiscountsReviewed){set({error:"Review unassigned discounts and correct the item totals before continuing."});return;}
         if (!receiptReady(bill)) { set({ error: "Add valid items and amounts before continuing." }); return; }
         const allocationEdits=Object.fromEntries(Object.entries(get().allocationEdits??{}).filter(([id])=>bill.items.some(i=>i.id===id)));
         change({ bill: structuredClone(bill), allocationEdits, receiptEdit: null, receiptConfirmed: true, step: "people", ...(review ?? {}) });

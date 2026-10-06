@@ -19,7 +19,7 @@ export function parseReceiptEvidence(evidence:OcrEvidence):ReceiptDraft{
   if(index<0)continue;used.add(index);
   const alternate=other.items[index];
   if(item.priceCents!==null&&alternate.priceCents!==null&&item.priceCents!==alternate.priceCents){
-   item.priceCents=null;item.details?.reviewCodes.push("ocr-price");
+   item.priceCents=null;if(item.details){item.details.printedPriceCents=null;item.details.reviewCodes.push("ocr-price");}
    draft.warnings.push(`Scans disagree on the price for ${item.name}. Enter the amount from the photo.`);
   }
  }
@@ -36,5 +36,7 @@ export function chooseReceiptCandidate(primary:OcrEvidence,secondary:OcrEvidence
     +[d.printedSubtotalCents,d.taxCents,d.printedTotalCents].filter(v=>v!==null).length*3;
  };
  const priced=(e:OcrEvidence)=>parseReceiptText(e.text,e.lines).items.filter(i=>i.priceCents!==null).length;
- return priced(secondary)>=priced(primary)&&score(secondary)>score(primary)?{...secondary,alternate:primary}:{...primary,alternate:secondary};
+ const names=(e:OcrEvidence)=>parseReceiptText(e.text,e.lines).items.map(i=>normalized(i.name));
+ const remaining=names(secondary);const preservesItems=names(primary).every(name=>{const index=remaining.indexOf(name);if(index<0)return false;remaining.splice(index,1);return true;});
+ return preservesItems&&priced(secondary)>=priced(primary)&&score(secondary)>score(primary)?{...secondary,alternate:primary}:{...primary,alternate:secondary};
 }

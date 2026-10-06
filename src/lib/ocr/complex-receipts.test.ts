@@ -57,3 +57,8 @@ it("keeps a leading list dash separate from a negative monetary amount",()=>{
  expect(d.items.map(i=>i.priceCents)).toEqual([2249]);
  expect(d.warnings.some(w=>w.includes("Negative amount"))).toBe(true);
 });
+it("never attributes a coupon after subtotal to the last dish",()=>{
+ const d=parseReceiptText("Soup $10.00\nTea $5.00\nSubtotal $15.00\nCoupon -$3.00\nTax $0.00\nTotal $12.00");
+ expect(d.items.flatMap(i=>i.details?.discounts??[])).toEqual([]);
+ expect(d).toHaveProperty("unassignedDiscounts",["Coupon -$3.00"]);
+});

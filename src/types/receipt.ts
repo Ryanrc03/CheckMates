@@ -11,8 +11,9 @@ export type ReceiptDraft = {
   printedTotalCents: number | null;
   warnings: string[];
   alternateRawText?: string;
+  unassignedDiscounts?: string[];
 };
-export type ReceiptEdit = { items: { id: string; name: string; price: string; allocation: ItemAllocation; receiptDetails?: ReceiptDetails }[]; tax: string; chargedTip: string; addedTip: string; note: string };
+export type ReceiptEdit = { items: { id: string; name: string; price: string; allocation: ItemAllocation; receiptDetails?: ReceiptDetails }[]; tax: string; chargedTip: string; addedTip: string; note: string; unassignedDiscountsReviewed?: boolean };
 export type BillSession = {
   bill: Bill;
   step: WizardStep;
@@ -24,4 +25,5 @@ export type BillSession = {
   reviewNote?: string;
   receiptEdit?: ReceiptEdit | null;
   allocationEdits?: Record<string, AllocationEdit>;
+  unassignedDiscountsReviewed?: boolean;
 };

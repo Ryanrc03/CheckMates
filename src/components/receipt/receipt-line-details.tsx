@@ -5,6 +5,7 @@ export function ReceiptLineDetails({name,details,onDiscountChoice}:{name:string;
  return <div className="receipt-line-details">
   <p>{details.quantity!==undefined&&details.quantity!==null&&<>Receipt quantity: {details.quantity}. </>}{details.unitPriceCents!==undefined&&details.unitPriceCents!==null&&<>Unit price: {formatMoney(details.unitPriceCents)}. </>}{details.taxCode&&<>Tax code: {details.taxCode}.</>}</p>
   {!!details.modifiers.length&&<p>Options: {details.modifiers.map(m=>m.text).join(" · ")}</p>}
+  {details.reviewCodes.includes("ocr-price")&&<p className="field-error">Scans disagree on the printed amount. Enter the printed line amount from the photo before choosing the discount.</p>}
   {!!details.discounts.length&&<div>
    {details.discounts.map((d,i)=><p key={i}><span>{d.inclusion==="included"?"Discount already included":d.inclusion==="subtract"?"Discount subtracted once":"Discount needs review"}</span> · {formatMoney(d.discountCents)}</p>)}
    <p>Choose whether the printed line amount already includes the listed discount. These choices use the printed amount.</p>

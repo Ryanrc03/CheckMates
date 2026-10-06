@@ -59,8 +59,8 @@ export function parseReceiptText(text:string,lines?:OcrLine[]):ReceiptDraft{
   }
   if(role==="discount"){
    const item=last();
-   if(item&&amount!==null){const d=details(item);d.discounts.push({discountCents:amount,inclusion:"unresolved",sourceLine:row.raw});d.sourceLines.push(row.raw);}
-   else warn(`Review unsupported or unassigned discount: ${row.raw}`);
+   if(!totalsSeen&&item&&amount!==null){const d=details(item);d.discounts.push({discountCents:amount,inclusion:"unresolved",sourceLine:row.raw});d.sourceLines.push(row.raw);}
+   else {(draft.unassignedDiscounts??=[]).push(row.raw);warn(`Review unsupported or unassigned discount: ${row.raw}`);}
    continue;
   }
   if(totalsSeen)continue;

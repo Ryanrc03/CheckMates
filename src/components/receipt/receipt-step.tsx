@@ -18,8 +18,9 @@ export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, s
   const [chargedTip, setChargedTip] = useState(() => s.receiptEdit?.chargedTip ?? (useDraft ? draft.tipCents === null ? "" : moneyInput(draft.tipCents) : moneyInput(s.bill.tipCents - (s.addedTipCents ?? 0))));
   const [addedTip, setAddedTip] = useState(() => s.receiptEdit?.addedTip ?? moneyInput(s.addedTipCents ?? 0));
   const [errors, setErrors] = useState<Record<string, string>>({}); const [checked, setChecked] = useState(false); const [note, setNote] = useState(s.receiptEdit?.note ?? s.reviewNote ?? "");
+  const [discountsReviewed,setDiscountsReviewed]=useState(s.receiptEdit?.unassignedDiscountsReviewed??s.unassignedDiscountsReviewed??false);
   const saveEdit = s.saveReceiptEdit;
-  useEffect(() => { saveEdit({ items, tax, chargedTip, addedTip, note }); }, [items, tax, chargedTip, addedTip, note, saveEdit]);
+  useEffect(() => { saveEdit({ items, tax, chargedTip, addedTip, note,unassignedDiscountsReviewed:discountsReviewed }); }, [items, tax, chargedTip, addedTip, note, discountsReviewed,saveEdit]);
   const candidate: Bill = { people: s.bill.people, items: items.map(i => ({ id: i.id, name: i.name.trim(), priceCents: parseMoney(i.price) ?? 0, allocation: i.allocation, receiptDetails: i.receiptDetails })), taxCents: parseMoney(tax) ?? 0, tipCents: (parseMoney(chargedTip) ?? 0) + (parseMoney(addedTip) ?? 0) };
   const subtotal = candidate.items.reduce((sum, i) => sum + i.priceCents, 0); const total = subtotal + candidate.taxCents + candidate.tipCents;
   const reconciliation = draft ? reconcileReceipt(draft, candidate, parseMoney(addedTip) ?? 0) : null;
@@ -28,6 +29,7 @@ export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, s
     event.preventDefault(); const next: Record<string, string> = {};
     items.forEach(i => { if (!i.name.trim()) next[`name-${i.id}`] = "Enter an item name."; if (parseMoney(i.price) === null) next[`price-${i.id}`] = "Enter a nonnegative USD amount with up to two decimals."; if(i.receiptDetails?.discounts.some(d=>d.inclusion==="unresolved"))next[`price-${i.id}`]=`Resolve the discount for ${i.name} before continuing.`; });
     for (const [key, value] of [["tax", tax], ["charged-tip", chargedTip], ["added-tip", addedTip]]) if (parseMoney(value) === null) next[key] = "Enter an amount, or 0 if none.";
+    if(draft?.unassignedDiscounts?.length&&!discountsReviewed)next.discount="Correct the item totals and review the unassigned discounts.";
     if (!items.length) next.form = "Add at least one item.";
     if (!Number.isSafeInteger(total)) next.form = "The total is too large. Check the amounts.";
     if (subtotal === 0 && candidate.taxCents + candidate.tipCents > 0) next.form = "Tax and tip require a nonzero item subtotal.";
@@ -35,17 +37,17 @@ export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, s
     if (mismatch && !note.trim()) next.note = "Explain the difference or correct the amounts.";
     setErrors(next);
     if (Object.keys(next).length) { requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); return; }
-    s.confirmReceipt(candidate, { addedTipCents: parseMoney(addedTip)!, reviewNote: note.trim() });
+    s.confirmReceipt(candidate, { addedTipCents: parseMoney(addedTip)!, reviewNote: note.trim(),unassignedDiscountsReviewed:discountsReviewed });
   }
   const error = (id: string) => errors[id] ? <p className="field-error" id={`${id}-error`}>{errors[id]}</p> : null;
   function chooseDiscount(id:string,choice:"included"|"subtract"){
     const item=items.find(i=>i.id===id);if(!item?.receiptDetails)return;
     const base=item.receiptDetails.printedPriceCents??parseMoney(item.price);
-    if(base===null)return;
+    if(base===null){setErrors({...errors,[`price-${id}`]:"Enter the printed line amount from the photo before choosing the discount."});return;}
     const discount=item.receiptDetails.discounts.reduce((s,d)=>s+BigInt(d.discountCents),0n);
     const net=BigInt(base)-(choice==="subtract"?discount:0n);
     if(net<0n){setErrors({...errors,[`price-${id}`]:"Listed discounts exceed the printed amount. Check the receipt."});return;}
-    const receiptDetails=structuredClone(item.receiptDetails);receiptDetails.printedPriceCents=base;receiptDetails.discounts.forEach(d=>{d.inclusion=choice;});receiptDetails.reviewCodes=receiptDetails.reviewCodes.filter(code=>code!=="discount");
+    const receiptDetails=structuredClone(item.receiptDetails);receiptDetails.printedPriceCents=base;receiptDetails.discounts.forEach(d=>{d.inclusion=choice;});receiptDetails.reviewCodes=receiptDetails.reviewCodes.filter(code=>code!=="discount"&&code!=="ocr-price");
     setItems(items.map(i=>i.id===id?{...i,price:moneyInput(Number(net)),receiptDetails}:i));
     setErrors({...errors,[`price-${id}`]:""});
   }
@@ -72,6 +74,7 @@ export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, s
         <div className="totals-line grand-total"><span>Edited total</span><b>{formatMoney(total)}</b></div>
         {draft && <div className="printed-totals"><p>Printed subtotal <b>{draft.printedSubtotalCents === null ? "Not identified" : formatMoney(draft.printedSubtotalCents)}</b></p><p>Printed total <b>{draft.printedTotalCents === null ? "Not identified" : formatMoney(draft.printedTotalCents)}</b></p>{reconciliation?.differenceCents !== null && <p>Difference before added tip <b>{formatMoney(reconciliation!.differenceCents!)}</b></p>}</div>}
       </div>
+      {!!draft?.unassignedDiscounts?.length&&<div className="notice"><h2>Unassigned discounts</h2><p>These discounts cannot be attributed automatically. Correct the affected item line totals using the photo before continuing.</p><pre>{draft.unassignedDiscounts.join("\n")}</pre><label className="checkbox-label"><input type="checkbox" checked={discountsReviewed} onChange={e=>setDiscountsReviewed(e.target.checked)}/> I corrected the item totals for these unassigned discounts.</label>{error("discount")}</div>}
       {!!warnings.length && <div className="notice review-notes"><h2>Before we split</h2><ul>{warnings.map((w, i) => <li key={i}>{w}</li>)}</ul><label className="checkbox-label"><input type="checkbox" checked={checked} aria-invalid={!!errors.review} onChange={e => setChecked(e.target.checked)}/> I checked the photo, amounts, and all review notes.</label>{error("review")}</div>}
       {mismatch && <label className="note-label">Reason for the difference<Input aria-label="Reason for the difference" value={note} aria-invalid={!!errors.note} onChange={e => setNote(e.target.value)}/>{error("note")}</label>}
       {errors.form && <p className="notice" role="alert">{errors.form}</p>}

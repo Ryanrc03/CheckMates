@@ -41,6 +41,7 @@ export function receiptReady(bill: Bill): boolean {
   return isBill(bill) && bill.items.length>0 && bill.items.every(i=>!!i.name.trim() && !i.receiptDetails?.discounts.some(d=>d.inclusion === "unresolved")) && (bill.items.some(i=>i.priceCents>0) || bill.taxCents+bill.tipCents===0);
 }
 export function isDraft(v: unknown): v is ReceiptDraft {
+  if(record(v)&&v.unassignedDiscounts!==undefined&&!strings(v.unassignedDiscounts))return false;
   if(record(v)&&v.alternateRawText!==undefined&&typeof v.alternateRawText!=="string")return false;
   return record(v) && typeof v.rawText==="string" && Array.isArray(v.items) && v.items.every(i=>record(i) && typeof i.name==="string" && nullableCents(i.priceCents) && typeof i.sourceLine==="string" && details(i.details)) && [v.taxCents,v.tipCents,v.printedSubtotalCents,v.printedTotalCents].every(nullableCents) && strings(v.warnings);
 }
@@ -48,6 +49,7 @@ export function availableStep(s: BillSession, target: WizardStep): WizardStep {
   if (target==="home") return "home";
   if (!s.source) return "home";
   if (target==="receipt") return "receipt";
+  if(s.receiptDraft?.unassignedDiscounts?.length&&!s.unassignedDiscountsReviewed)return "receipt";
   if (!receiptReady(s.bill) || (s.source==="photo" && !s.receiptConfirmed)) return "receipt";
   if (target==="people") return "people";
   if (!s.bill.people.length) return "people";
@@ -56,6 +58,7 @@ export function availableStep(s: BillSession, target: WizardStep): WizardStep {
   try {splitBill(s.bill);return "result";} catch {return "split";}
 }
 export function isReceiptEdit(v: unknown): v is ReceiptEdit {
+  if(record(v)&&v.unassignedDiscountsReviewed!==undefined&&typeof v.unassignedDiscountsReviewed!=="boolean")return false;
   return record(v) && [v.tax,v.chargedTip,v.addedTip,v.note].every(s=>typeof s==="string") && Array.isArray(v.items) && v.items.every(i=>record(i) && typeof i.id==="string" && typeof i.name==="string" && typeof i.price==="string" && isAllocation(i.allocation) && details(i.receiptDetails)) && unique(v.items.map(i=>i.id));
 }
 function isAllocationEdits(v: unknown, bill: Bill): v is Record<string, AllocationEdit> {
@@ -63,12 +66,13 @@ function isAllocationEdits(v: unknown, bill: Bill): v is Record<string, Allocati
 }
 export function restoreSession(input: unknown): BillSession | null {
   if (!record(input) || !isBill(input.bill) || !["home","receipt","people","split","result"].includes(String(input.step)) || ![null,"photo","demo"].includes(input.source as string|null) || !(input.fileName===null || typeof input.fileName==="string") || !(input.receiptDraft===null || isDraft(input.receiptDraft))) return null;
+  if(input.unassignedDiscountsReviewed!==undefined&&typeof input.unassignedDiscountsReviewed!=="boolean")return null;
   if (input.receiptConfirmed!==undefined && typeof input.receiptConfirmed!=="boolean") return null;
   if (input.addedTipCents!==undefined && !validCents(input.addedTipCents)) return null;
   if (input.reviewNote!==undefined && typeof input.reviewNote!=="string") return null;
   if (input.receiptEdit!==undefined && input.receiptEdit!==null && !isReceiptEdit(input.receiptEdit)) return null;
   if (input.allocationEdits!==undefined && !isAllocationEdits(input.allocationEdits,input.bill)) return null;
-  const s: BillSession=structuredClone({bill:input.bill,step:input.step as WizardStep,source:input.source as BillSession["source"],fileName:input.fileName as string|null,receiptDraft:input.receiptDraft as ReceiptDraft|null,receiptConfirmed:input.receiptConfirmed===true,addedTipCents:input.addedTipCents as number|undefined,reviewNote:input.reviewNote as string|undefined,receiptEdit:input.receiptEdit as ReceiptEdit|null|undefined,allocationEdits:(input.allocationEdits??{}) as Record<string,AllocationEdit>});
+  const s: BillSession=structuredClone({bill:input.bill,step:input.step as WizardStep,source:input.source as BillSession["source"],fileName:input.fileName as string|null,receiptDraft:input.receiptDraft as ReceiptDraft|null,receiptConfirmed:input.receiptConfirmed===true,addedTipCents:input.addedTipCents as number|undefined,reviewNote:input.reviewNote as string|undefined,receiptEdit:input.receiptEdit as ReceiptEdit|null|undefined,unassignedDiscountsReviewed:input.unassignedDiscountsReviewed===true,allocationEdits:(input.allocationEdits??{}) as Record<string,AllocationEdit>});
   if ((s.addedTipCents??0)>s.bill.tipCents && s.receiptConfirmed) return null;
   s.step=availableStep(s,s.step);return s;
 }

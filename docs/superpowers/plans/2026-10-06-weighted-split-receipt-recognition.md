@@ -174,3 +174,11 @@ details 固定包含可选 `quantity: number|null`、`unitPriceCents: number|nul
 - Review Focus 五类输入均有归属测试；三图人工金额已独立验算；空/损坏/OCR取消使用旧回退路径。
 - 先交付 A，再交付 B；Task 0为测量准备。每阶段独立review，首次编码以本次计划review后的明确指令为准。
 - 本次只写计划与设计，不运行上面的待开发测试或宣称升级已通过；不提交已有其他文档改动。
+
+## 开发验收记录（2026-10-06）
+
+Task 0–6 已实施。完整验证：88/88 单元测试、41/41 生产浏览器测试（包含三张私有原图，没有跳过）、lint/类型检查/构建通过。最终独立 review 的三个 Important 问题在同一修补阶段修复，新增失败回归转绿。详见 `docs/validation/2026-10-06-weighted-split-receipts.md`。
+
+实现调整：ItemShare 从同一 splitBill 计算派生供结果及分享；元信息类型分到 receipt-details.ts 以避免循环依赖；样本测试集中于 complex-receipts/receipt-fixtures 测试；保留单次默认 OCR，第二种版面扫描改为手动 Enhanced。原图与默认校正/单列比较没有一致提升依据，所以未新增自动第二次扫描或对比度变换。整单优惠不自动分配，单独显示证据、要求人工更正净行价并确认。
+
+历史勾选列表保留为原计划，不代表逐条测试名一字不差实现。特别是原始图片的完整菜名/价格对齐、最小人工修正次数与跨设备准确率尚未建立可靠指标；金额多重集覆盖率明确不作为整体识别准确率。开发在 `codex/weighted-receipts` 分支完成，保留供 review，不自动发布。
