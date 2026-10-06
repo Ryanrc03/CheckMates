@@ -233,3 +233,13 @@ h2 { font-size: 18px; font-weight: 700; }
 .adjustment-actions > :first-child { width: 100%; }
 .adjustment-actions .photo-input { flex: 1 1 100%; }
 @media (max-width: 480px) { .adjustment-panels { grid-template-columns: 1fr; }.adjustment-image-wrap img { max-height: 300px; } }
+.allocation-editor { display: grid; gap: 14px; min-width: 0; }
+.split-method { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
+.split-method select { border: 1px solid #d7d1c7; border-radius: 8px; background: white; padding: 9px 12px; max-width: 65%; font: inherit; }
+.quantity-heading, .share-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.quantity-heading label, .share-inputs label { display: grid; gap: 6px; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.item-share-preview { list-style: none; padding: 12px 0 0; margin: 0; border-top: 1px dashed #d7d1c7; font-size: 14px; display: grid; gap: 6px; overflow-wrap: anywhere; }
+.item-share-preview li { min-width: 0; }
+.receipt-line-details { grid-column: 1 / -1; font-size: 13px; padding: 8px 0; min-width: 0; overflow-wrap: anywhere; }
+.receipt-line-details pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.receipt-line-details .row { flex-wrap: wrap; gap: 8px; }

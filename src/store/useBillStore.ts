@@ -5,7 +5,7 @@ import type { BillSession, ReceiptDraft, ReceiptEdit, AllocationEdit } from "@/t
 import { createMockBill, emptyBill } from "@/lib/receipt";
 import { availableStep, isBill, isDraft, receiptReady, migrateSession, validCents } from "@/lib/session";
 
-import { validateItemAllocation } from "@/lib/item-allocation";
+import { allocationPersonIds, validateItemAllocation } from "@/lib/item-allocation";
 
 const initial = (): BillSession => ({ bill: emptyBill(), step: "home", source: null, fileName: null, receiptDraft: null, receiptConfirmed: false, addedTipCents: 0, reviewNote: "", receiptEdit: null, allocationEdits: {} });
 const KEY = "bitesplit-session";
@@ -21,6 +21,7 @@ type State = BillSession & {
   setExtras: (tax: number, tip: number) => void;
   addPerson: (name: string) => void; renamePerson: (id: string, name: string) => void; removePerson: (id: string) => void;
   togglePerson: (itemId: string, personId: string) => void; assignEveryone: (itemId: string) => void;
+  resetEqualAllocation: (itemId: string) => void;
   saveAllocationEdit: (itemId: string, edit: AllocationEdit) => void;
   applyAllocation: (itemId: string, allocation: ItemAllocation) => void;
   discardAllocationEdit: (itemId: string) => void;
@@ -82,6 +83,7 @@ export function createBillStore(storage: StateStorage) {
       },
       togglePerson: (itemId, personId) => update(b=>({...b,items:b.items.map(i=>i.id===itemId && i.allocation.mode==="equal" ? {...i,allocation:{mode:"equal",personIds:i.allocation.personIds.includes(personId)?i.allocation.personIds.filter(p=>p!==personId):[...i.allocation.personIds,personId]}}:i)})),
       assignEveryone: itemId => update(b=>({...b,items:b.items.map(i=>i.id===itemId ? {...i,allocation:{mode:"equal",personIds:b.people.map(p=>p.id)}}:i)})),
+      resetEqualAllocation: itemId => {const bill={...get().bill,items:get().bill.items.map(i=>i.id===itemId?{...i,allocation:{mode:"equal" as const,personIds:allocationPersonIds(i.allocation)}}:i)};const edits={...get().allocationEdits};delete edits[itemId];change({bill,allocationEdits:edits});},
       saveAllocationEdit: (itemId, edit) => { if(get().bill.items.some(i=>i.id===itemId)) change({allocationEdits:{...get().allocationEdits,[itemId]:structuredClone(edit)}}); },
       discardAllocationEdit: itemId => {const edits={...get().allocationEdits};delete edits[itemId];change({allocationEdits:edits});},
       applyAllocation: (itemId, allocation) => {

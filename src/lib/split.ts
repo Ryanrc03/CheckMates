@@ -16,12 +16,15 @@ export function splitBill(bill: Bill): SplitResult {
   if (new Set(ids).size !== ids.length) throw new Error("Person IDs must be unique.");
   const itemTotals = ids.map(() => 0);
   let subtotalCents = 0;
+  const itemShares: NonNullable<SplitResult["itemShares"]> = [];
 
   for (const item of bill.items) {
     assertCents(item.priceCents, "Item price");
     subtotalCents += item.priceCents;
     assertCents(subtotalCents, "Subtotal");
-    for (const share of allocateItemCents(item, bill.people)) itemTotals[ids.indexOf(share.personId)] += share.cents;
+    const shares=allocateItemCents(item,bill.people);
+    itemShares.push({itemId:item.id,itemName:item.name,mode:item.allocation.mode,unitLabel:item.allocation.mode==="quantity"?item.allocation.unitLabel:"",shares});
+    for (const share of shares) itemTotals[ids.indexOf(share.personId)] += share.cents;
   }
 
   assertCents(subtotalCents, "Subtotal");
@@ -35,6 +38,7 @@ export function splitBill(bill: Bill): SplitResult {
     taxCents: bill.taxCents,
     tipCents: bill.tipCents,
     totalCents,
+    itemShares,
     people: bill.people.map((person, index) => ({
       ...person,
       itemsCents: itemTotals[index],

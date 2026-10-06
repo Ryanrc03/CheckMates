@@ -34,4 +34,8 @@ export type SplitResult = {
   tipCents: number;
   totalCents: number;
   people: PersonShare[];
+  itemShares?: {
+    itemId: string; itemName: string; mode: ItemAllocation["mode"]; unitLabel: string;
+    shares: { personId: string; units: number; weightSum: string; cents: number }[];
+  }[];
 };
