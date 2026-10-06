@@ -68,7 +68,8 @@ export function createBillStore(storage: StateStorage) {
       setReceiptDraft: receiptDraft => { if (isDraft(receiptDraft)) change({ receiptDraft, receiptEdit: null, receiptConfirmed: false, addedTipCents: 0, reviewNote: "", step: "receipt" }); },
       confirmReceipt: (bill, review) => {
         if (!receiptReady(bill)) { set({ error: "Add valid items and amounts before continuing." }); return; }
-        change({ bill: structuredClone(bill), receiptEdit: null, receiptConfirmed: true, step: "people", ...(review ?? {}) });
+        const allocationEdits=Object.fromEntries(Object.entries(get().allocationEdits??{}).filter(([id])=>bill.items.some(i=>i.id===id)));
+        change({ bill: structuredClone(bill), allocationEdits, receiptEdit: null, receiptConfirmed: true, step: "people", ...(review ?? {}) });
       },
       updateItem: (id, patch) => update(b => ({ ...b, items: b.items.map(i => i.id === id ? { ...i, ...patch } : i) })),
       addItem: () => update(b => ({ ...b, items: [...b.items, { id: crypto.randomUUID(), name: "", priceCents: 0, allocation: { mode: "equal", personIds: [] } }] })),

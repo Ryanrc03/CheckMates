@@ -9,11 +9,13 @@ import { PeopleStep } from "./people/people-step";
 import { SplitStep } from "./split/split-step";
 import { ResultStep } from "./result/result-step";
 import { recognizeReceipt } from "@/lib/ocr/client";
+import { parseReceiptEvidence } from "@/lib/ocr/retry";
 import { parseReceiptText } from "@/lib/ocr/parseReceipt";
 import type { Adjustment } from "@/lib/receipt-image/render";
 const steps = ["home", "receipt", "people", "split", "result"] as const;
 export function BillWizard() {
   const s = useBillStore(); const [photoUrl, setPhotoUrl] = useState<string | null>(null); const [adjusting, setAdjusting] = useState<File | null>(null); const [adjustUrl, setAdjustUrl] = useState<string | null>(null); const url = useRef<string | null>(null); const pendingUrl = useRef<string | null>(null); const file = useRef<File | null>(null);
+  const enhancedScan = useRef(false);
   const request = useRef(0); const controller = useRef<AbortController | null>(null); const [adjustments, setAdjustments] = useState<Map<File, Adjustment>>(() => new Map());
   const saveAdjustment = useCallback((selected: File, value: Adjustment) => { setAdjustments(previous => { if (previous.get(selected) === value) return previous; const next = new Map(previous); next.set(selected, value); return next; }); }, []);
   const [busy, setBusy] = useState(false); const [stage, setStage] = useState(""); const [progress, setProgress] = useState<number | null>(null); const [error, setError] = useState<string | null>(null); const [draftVersion, setDraftVersion] = useState(0);
@@ -29,10 +31,9 @@ export function BillWizard() {
     setBusy(true); setError(null); setStage("Reading your receipt"); setProgress(null); setAdjusting(null);
     try {
       if (!replacing) commitPhoto(selected);
-      const result = await recognizeReceipt(image, { signal: abort.signal, onProgress: (message, value) => { if (id === request.current) { setStage(message); setProgress(value); } } });
+      const result = await recognizeReceipt(image, { signal: abort.signal, enhanced: enhancedScan.current, onProgress: (message, value) => { if (id === request.current) { setStage(message); setProgress(value); } } });
       if (id !== request.current) return;
-      const draft = parseReceiptText(result.text);
-      if (result.confidence < 60) draft.warnings.push("Recognition confidence is low. Compare every line with the photo.");
+      const draft = parseReceiptEvidence(result);
       if (replacing) commitPhoto(selected);
       else useBillStore.getState().startBill("photo", selected.name);
       useBillStore.getState().setReceiptDraft(draft); setDraftVersion(v => v + 1);
@@ -40,7 +41,8 @@ export function BillWizard() {
       if (id === request.current && !abort.signal.aborted) { if (replacing) discardAdjustment(); setError(failure instanceof Error ? failure.message : "Recognition failed. Try again or enter items manually."); }
     } finally { if (id === request.current) { setBusy(false); controller.current = null; } }
   }
-  function selectForAdjustment(selected: File) {
+  function selectForAdjustment(selected: File, enhanced = false) {
+    enhancedScan.current = enhanced;
     const saved = useBillStore.getState();
     if (saved.step === "home" && saved.source === "photo" && saved.receiptDraft) saved.goTo("receipt");
     cancel(); if (pendingUrl.current) URL.revokeObjectURL(pendingUrl.current); pendingUrl.current = URL.createObjectURL(selected); setAdjustUrl(pendingUrl.current); setError(null); setAdjusting(selected);
@@ -60,7 +62,7 @@ export function BillWizard() {
         {s.storageError && <p className="notice" role="status">{s.storageError}</p>}{s.error && <p className="notice" role="alert">{s.error}</p>}{error && s.step !== "home" && <p className="notice" role="alert">{error}</p>}
         {s.step === "home" && <HomeStep busy={busy} stage={stage} progress={progress} error={error} hasPhoto={!!photoUrl} onCancel={cancel} onRetry={() => selectForAdjustment(file.current!)} onPhotoSelected={selectForAdjustment} onDemo={() => { cancel(); releasePhoto(); setError(null); s.startBill("demo"); }} onManual={() => { cancel(); if (s.source !== "photo") s.startBill("photo"); s.setReceiptDraft(parseReceiptText("")); setDraftVersion(v => v + 1); }}
         />}
-        {s.step === "receipt" && <ReceiptStep key={draftVersion} photoUrl={photoUrl} onAttach={attach} onRotate={() => { if (file.current) selectForAdjustment(file.current); }} onRecognize={() => { if (file.current) selectForAdjustment(file.current); }} busy={busy} stage={stage} onCancel={() => { cancel(); if (pendingUrl.current) discardAdjustment(); }}/>}
+        {s.step === "receipt" && <ReceiptStep key={draftVersion} photoUrl={photoUrl} onAttach={attach} onRotate={() => { if (file.current) selectForAdjustment(file.current); }} onRecognize={enhanced => { if (file.current) selectForAdjustment(file.current, enhanced); }} busy={busy} stage={stage} onCancel={() => { cancel(); if (pendingUrl.current) discardAdjustment(); }}/>}
         {s.step === "people" && <PeopleStep/>}{s.step === "split" && <SplitStep/>}{s.step === "result" && <ResultStep onReset={reset}/>}
       </>}
     </main><footer className="site-footer">Made for meals worth sharing.</footer>

@@ -22,8 +22,10 @@ export function isReceiptDetails(v: unknown): v is ReceiptDetails {
   if (!v.discounts.every(d => record(d) && validCents(d.discountCents) && ["included","subtract","unresolved"].includes(String(d.inclusion)) && typeof d.sourceLine === "string")) return false;
   if (v.quantity !== undefined && v.quantity !== null && (!validCents(v.quantity) || v.quantity === 0)) return false;
   if (v.unitPriceCents !== undefined && !nullableCents(v.unitPriceCents)) return false;
+  if (v.printedPriceCents !== undefined && !nullableCents(v.printedPriceCents)) return false;
   if (v.taxCode !== undefined && v.taxCode !== null && typeof v.taxCode !== "string") return false;
   if (v.parentSourceId !== undefined && typeof v.parentSourceId !== "string") return false;
+  if (v.sourceId !== undefined && typeof v.sourceId !== "string") return false;
   if (v.bbox !== undefined && (!record(v.bbox) || !["x0","y0","x1","y1"].every(k=>record(v.bbox) && typeof v.bbox[k]==="number" && Number.isFinite(v.bbox[k])))) return false;
   return true;
 }
@@ -39,6 +41,7 @@ export function receiptReady(bill: Bill): boolean {
   return isBill(bill) && bill.items.length>0 && bill.items.every(i=>!!i.name.trim() && !i.receiptDetails?.discounts.some(d=>d.inclusion === "unresolved")) && (bill.items.some(i=>i.priceCents>0) || bill.taxCents+bill.tipCents===0);
 }
 export function isDraft(v: unknown): v is ReceiptDraft {
+  if(record(v)&&v.alternateRawText!==undefined&&typeof v.alternateRawText!=="string")return false;
   return record(v) && typeof v.rawText==="string" && Array.isArray(v.items) && v.items.every(i=>record(i) && typeof i.name==="string" && nullableCents(i.priceCents) && typeof i.sourceLine==="string" && details(i.details)) && [v.taxCents,v.tipCents,v.printedSubtotalCents,v.printedTotalCents].every(nullableCents) && strings(v.warnings);
 }
 export function availableStep(s: BillSession, target: WizardStep): WizardStep {

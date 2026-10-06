@@ -44,7 +44,7 @@ export function ItemAllocationEditor({item,people}:{item:ReceiptItem;people:Pers
       {message&&<p className="field-error" role="status">{message}</p>}
       {pending&&<p className="muted">Apply the pending shares before viewing the result.</p>}
       <Button variant="outline" disabled={!allocation || !pending} onClick={()=>allocation&&s.applyAllocation(item.id,allocation)}>Apply shares</Button>
-      <p className="fine-print">Switching to Equal resets this item's custom shares.</p>
+      <p className="fine-print">Switching to Equal resets this item&apos;s custom shares.</p>
     </>}
     {!!preview.length&&<ul className="item-share-preview" aria-label={`Shares for ${item.name}`}>{preview.map(part=><li key={part.personId}>{people.find(p=>p.id===part.personId)?.name}: {part.units}/{part.weightSum}{edit.mode==="quantity"?` ${edit.unitLabel||"pieces"}`:""} · {formatMoney(part.cents)}</li>)}</ul>}
   </div>;

@@ -1,12 +1,15 @@
+import type { OcrEvidence } from "@/types/ocr";
+import { parseReceiptText } from "./parseReceipt";
+import { shouldRetryReceipt, chooseReceiptCandidate } from "./retry";
 type ProgressMessage = { status: string; progress?: number };
-export type OcrWorker = { recognize: (image: Blob) => Promise<{ data: { text: string; confidence: number } }>; terminate: () => Promise<unknown> };
-type Options = { signal: AbortSignal; onProgress: (stage: string, progress: number | null) => void };
+export type OcrWorker = { recognize: (image: Blob, scan?: {pageSegMode:3|4|6}) => Promise<{ data: OcrEvidence }>; terminate: () => Promise<unknown> };
+type Options = { signal: AbortSignal; onProgress: (stage: string, progress: number | null) => void; enhanced?:boolean };
 type Factory = (logger: (message: ProgressMessage) => void) => Promise<OcrWorker>;
 const aborted = () => new DOMException("Recognition canceled. You can select another photo or enter items manually.", "AbortError");
 
 export function createReceiptRecognizer(factory: Factory) {
   let cancelActive: (() => void) | null = null;
-  return async (image: Blob, { signal, onProgress }: Options): Promise<{ text: string; confidence: number }> => {
+  return async (image: Blob, { signal, onProgress, enhanced }: Options): Promise<OcrEvidence> => {
     cancelActive?.();
     if (signal.aborted) throw aborted();
     let ended = false; let worker: OcrWorker | null = null; let terminated = false;
@@ -23,7 +26,15 @@ export function createReceiptRecognizer(factory: Factory) {
       const { data } = await worker.recognize(image);
       if (ended) throw aborted();
       if (!data.text.trim()) throw new Error("No text found. Try a clearer receipt photo or enter items manually.");
-      return { text: data.text, confidence: data.confidence };
+      if(enhanced&&shouldRetryReceipt(data,parseReceiptText(data.text,data.lines))){
+        onProgress("Checking an enhanced scan",null);
+        try {
+          const second=await worker.recognize(image,{pageSegMode:4});
+          if(ended)throw aborted();
+          if(second.data.text.trim())return chooseReceiptCandidate(data,second.data);
+        } catch(error) {if(ended||signal.aborted)throw error;return {...data,enhancementError:error instanceof Error?error.message:"Enhanced scan unavailable"};}
+      }
+      return data;
     })();
     try { return await Promise.race([work, stop]); }
     finally { ended = true; clearTimeout(timer); signal.removeEventListener("abort", cancel); release(); if (cancelActive === cancel) cancelActive = null; }

@@ -14,4 +14,13 @@ for(const name of ["olive-garden","krung-thep","chinatown-supermarket"]) test(`p
  await mkdir(output,{recursive:true});
  const phase=process.env.RECEIPT_MEASUREMENT_PHASE??"baseline";
  await writeFile(resolve(output,`${name}.browser-${phase}.json`),JSON.stringify({name,phase,ms:Date.now()-start,adjustment:"default proposed correction, user accepted",session:saved},null,2));
+ if(process.env.MEASURE_ENHANCED==="1"){
+  page.on("dialog",dialog=>dialog.accept());
+  await page.getByRole("button",{name:"Enhanced scan",exact:true}).click();
+  const enhancedStart=Date.now();await page.getByRole("button",{name:"Use this photo and recognize",exact:true}).click();
+  await expect(page.getByRole("button",{name:"Cancel recognition",exact:true})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Cancel recognition",exact:true})).toHaveCount(0,{timeout:120000});
+  const enhanced=await page.evaluate(()=>JSON.parse(localStorage.getItem("bitesplit-session")??"null"));
+  await writeFile(resolve(output,`${name}.browser-enhanced.json`),JSON.stringify({name,phase:"enhanced",ms:Date.now()-enhancedStart,adjustment:"same accepted correction, user-requested enhanced candidate",session:enhanced},null,2));
+ }
 });

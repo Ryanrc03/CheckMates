@@ -3,6 +3,16 @@ import { createReceiptRecognizer, type OcrWorker } from "./client";
 afterEach(() => vi.useRealTimers());
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(r => { resolve = r; }); return { promise, resolve }; }
 function worker(text = "Soup 8.00") { return { recognize: async () => ({ data: { text, confidence: 90 } }), terminate: vi.fn(async () => {}) }; }
+it("enhanced scan attempts at most one candidate and shares the existing deadline",async()=>{
+ let calls=0;const run=createReceiptRecognizer(async()=>({recognize:async()=>{calls++;return {data:{text:"Soup $8.00",confidence:50}};},terminate:async()=>{}}));
+ await run(new Blob(),{signal:new AbortController().signal,onProgress:()=>{},enhanced:true});expect(calls).toBe(2);
+});
+it("times out a pending enhanced candidate at the original deadline",async()=>{
+ vi.useFakeTimers();let calls=0;const candidate=deferred<{data:{text:string;confidence:number}}>();
+ const run=createReceiptRecognizer(async()=>({recognize:async()=>++calls===1?{data:{text:"Soup $8.00",confidence:50}}:candidate.promise,terminate:async()=>{}}));
+ const pending=run(new Blob(),{signal:new AbortController().signal,onProgress:()=>{},enhanced:true});
+ const rejected=expect(pending).rejects.toThrow(/120 seconds/);await vi.advanceTimersByTimeAsync(120000);await rejected;expect(calls).toBe(2);
+});
 it("returns real worker text and progress", async () => {
   const progress: unknown[] = []; const w = worker();
   const run = createReceiptRecognizer(async log => { log({ status: "loading", progress: 0.5 }); return w; });

@@ -40,8 +40,8 @@ export function classifyReceiptLines(text:string,lines?:OcrLine[]):ClassifiedLin
   else if(/\b(?:service|svc|surcharge)\b/i.test(label))role="metadata";
   else if(amount!==null&&/[a-z]/i.test(label))role="item";
   else if(/^\$?\s*\d+\.\d{2}\s*$/.test(s)||(/^\(?\d+(?:\.\d+)?%\)?\s*\$?\d+\.\d{2}\s*$/.test(s)))role="amount";
-  else if(/^(?:\d+\s+)?[*x]\s+\S|^\[.+\]|^(?:chicken|beef|pork|tofu|shrimp|no onions?|mild|medium|spicy|for here|take\s*out)\s*$/i.test(s)||/^\s{2,}\S/.test(raw))role="modifier";
+  else if(/^(?:\d+\s+)?[*x]\s+\S|^\[.+\]|^(?:chicken|beef|pork|tofu|shrimp|no onions?|mild|medium|spicy|for here|take\s*out)\s*$/i.test(s))role="modifier";
   else if(/no beverage|dine.?in|party size|duplicate receipt|stored order|please pay|^item count|^(?:server|table|order|cashier|station)\b|thank|welcome|www\.|https?:|\b(?:street|avenue|ave|road|blvd|broadway|restaurant|cafe|diner|cuisine|supermarket)\b|\d{2,4}[/-]\d{1,2}[/-]\d{1,4}|\d{3}[-.) ]\s*\d{3}[-. ]\d{4}|\*{2,}/i.test(s))role="metadata";
-  return {raw,text:s,label,amount,role,negative:/[-−]\s*\$?\s*\d/.test(s),taxCode,bbox:row.bbox};
+  return {raw,text:s,label,amount,role,negative:/[-−]\s*\$\s*\d|(?:^|\s)[-−]\s*\d+\.\d{2}/.test(s),taxCode,bbox:row.bbox};
  });
 }

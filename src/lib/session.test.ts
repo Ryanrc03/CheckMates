@@ -27,3 +27,10 @@ it("removes deleted people from shares and pending inputs without renormalizing 
   expect(store.getState().allocationEdits?.[item.id].entries).toEqual([{personId:a.id,value:"2"}]);
   const next=createBillStore(storage);await next.getState().hydrate();expect(next.getState().bill.items[0].allocation).toEqual(store.getState().bill.items[0].allocation);
 });
+it("clears pending allocations for items removed in the receipt editor",async()=>{
+ const store=createBillStore({getItem:()=>null,setItem:()=>{},removeItem:()=>{}});await store.getState().hydrate();store.getState().startBill("demo");
+ store.getState().addPerson("A");const state=store.getState();const id=state.bill.items[0].id;
+ state.saveAllocationEdit(id,{mode:"ratio",totalUnits:"",unitLabel:"pieces",entries:[{personId:state.bill.people[0].id,value:"1"}]});
+ state.confirmReceipt({...state.bill,items:state.bill.items.slice(1)});
+ expect(store.getState().allocationEdits).toEqual({});
+});

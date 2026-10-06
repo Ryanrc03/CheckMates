@@ -41,3 +41,19 @@ it("uses tax detail only once and never uses taxable amounts as tax",()=>{
  expect(parseReceiptText("Food $74.48\nSubtotal $74.48\nTax $2.24\nTotal $76.72\n"+table).taxCents).toBe(224);
  expect(parseReceiptText("Food $74.48\nSubtotal $74.48\n"+table).taxCents).toBe(224);
 });
+it("keeps an indented missing-price dish unless a customization context identifies an option",()=>{
+ const missing=parseReceiptText("Noodles $8.00\n    Soup\nSubtotal $8.00\nTax $0.00\nTotal $8.00");
+ expect(missing.items.map(i=>[i.name,i.priceCents])).toEqual([["Noodles",800],["Soup",null]]);
+ const option=parseReceiptText("CYO Noodles $8.00\n    Buckwheat\n    Soy broth\nSubtotal $8.00\nTax $0.00\nTotal $8.00");
+ expect(option.items).toHaveLength(1);expect(option.items[0].details?.modifiers.map(m=>m.text)).toEqual(["Buckwheat","Soy broth"]);
+});
+it("links an included side to the main dish across a charged addon",()=>{
+ const d=parseReceiptText("CYO Pasta $13.99\nAdd Shrimp $6.79\n1 * Salad\nSubtotal $20.78\nTax $0.00\nTotal $20.78");
+ expect(d.items[0].details?.modifiers.map(m=>m.text)).toContain("1 * Salad");
+ expect(d.items[1].details?.parentSourceId).toBe(d.items[0].details?.sourceId);
+});
+it("keeps a leading list dash separate from a negative monetary amount",()=>{
+ const d=parseReceiptText("- 1 Main Course 22.49\nRefund -$1.00\nSubtotal $22.49\nTax $0.00\nTotal $22.49");
+ expect(d.items.map(i=>i.priceCents)).toEqual([2249]);
+ expect(d.warnings.some(w=>w.includes("Negative amount"))).toBe(true);
+});

@@ -9,10 +9,11 @@ import { reconcileReceipt } from "@/lib/ocr/reconcile";
 import { PhotoInput } from "../home/home-step";
 import type { ReceiptEdit } from "@/types/receipt";
 import type { Bill } from "@/types/bill";
+import { ReceiptLineDetails } from "./receipt-line-details";
 
-export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, stage, onCancel }: { photoUrl: string | null; onAttach: (file: File) => void; onRotate: () => void; onRecognize: () => void; busy: boolean; stage: string; onCancel: () => void }) {
+export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, stage, onCancel }: { photoUrl: string | null; onAttach: (file: File) => void; onRotate: () => void; onRecognize: (enhanced?:boolean) => void; busy: boolean; stage: string; onCancel: () => void }) {
   const s = useBillStore(); const draft = s.receiptDraft; const useDraft = draft && !s.receiptConfirmed;
-  const [items, setItems] = useState<ReceiptEdit["items"]>(() => s.receiptEdit?.items ?? (useDraft ? draft.items.map((i, index) => ({ id: `ocr-${index}`, name: i.name, price: i.priceCents === null ? "" : moneyInput(i.priceCents), allocation: { mode: "equal" as const, personIds: [] } })) : s.bill.items.map(i => ({ ...i, price: moneyInput(i.priceCents) }))));
+  const [items, setItems] = useState<ReceiptEdit["items"]>(() => s.receiptEdit?.items ?? (useDraft ? draft.items.map((i, index) => ({ id: `ocr-${index}`, name: i.name, price: i.priceCents === null ? "" : moneyInput(i.priceCents), allocation: { mode: "equal" as const, personIds: [] }, receiptDetails:i.details?structuredClone(i.details):undefined })) : s.bill.items.map(i => ({ ...i, price: moneyInput(i.priceCents) }))));
   const [tax, setTax] = useState(() => s.receiptEdit?.tax ?? (useDraft ? draft.taxCents === null ? "" : moneyInput(draft.taxCents) : moneyInput(s.bill.taxCents)));
   const [chargedTip, setChargedTip] = useState(() => s.receiptEdit?.chargedTip ?? (useDraft ? draft.tipCents === null ? "" : moneyInput(draft.tipCents) : moneyInput(s.bill.tipCents - (s.addedTipCents ?? 0))));
   const [addedTip, setAddedTip] = useState(() => s.receiptEdit?.addedTip ?? moneyInput(s.addedTipCents ?? 0));
@@ -25,7 +26,7 @@ export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, s
   const warnings = reconciliation?.warnings ?? []; const mismatch = reconciliation?.differenceCents !== null && reconciliation?.differenceCents !== undefined && reconciliation.differenceCents !== 0;
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const next: Record<string, string> = {};
-    items.forEach(i => { if (!i.name.trim()) next[`name-${i.id}`] = "Enter an item name."; if (parseMoney(i.price) === null) next[`price-${i.id}`] = "Enter a nonnegative USD amount with up to two decimals."; });
+    items.forEach(i => { if (!i.name.trim()) next[`name-${i.id}`] = "Enter an item name."; if (parseMoney(i.price) === null) next[`price-${i.id}`] = "Enter a nonnegative USD amount with up to two decimals."; if(i.receiptDetails?.discounts.some(d=>d.inclusion==="unresolved"))next[`price-${i.id}`]=`Resolve the discount for ${i.name} before continuing.`; });
     for (const [key, value] of [["tax", tax], ["charged-tip", chargedTip], ["added-tip", addedTip]]) if (parseMoney(value) === null) next[key] = "Enter an amount, or 0 if none.";
     if (!items.length) next.form = "Add at least one item.";
     if (!Number.isSafeInteger(total)) next.form = "The total is too large. Check the amounts.";
@@ -37,13 +38,25 @@ export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, s
     s.confirmReceipt(candidate, { addedTipCents: parseMoney(addedTip)!, reviewNote: note.trim() });
   }
   const error = (id: string) => errors[id] ? <p className="field-error" id={`${id}-error`}>{errors[id]}</p> : null;
-  return <section><div className="step-heading"><p className="eyebrow">A QUICK DOUBLE-CHECK</p><h1>Check the receipt</h1><p>Make sure each price is the whole line total.</p></div>
+  function chooseDiscount(id:string,choice:"included"|"subtract"){
+    const item=items.find(i=>i.id===id);if(!item?.receiptDetails)return;
+    const base=item.receiptDetails.printedPriceCents??parseMoney(item.price);
+    if(base===null)return;
+    const discount=item.receiptDetails.discounts.reduce((s,d)=>s+BigInt(d.discountCents),0n);
+    const net=BigInt(base)-(choice==="subtract"?discount:0n);
+    if(net<0n){setErrors({...errors,[`price-${id}`]:"Listed discounts exceed the printed amount. Check the receipt."});return;}
+    const receiptDetails=structuredClone(item.receiptDetails);receiptDetails.printedPriceCents=base;receiptDetails.discounts.forEach(d=>{d.inclusion=choice;});receiptDetails.reviewCodes=receiptDetails.reviewCodes.filter(code=>code!=="discount");
+    setItems(items.map(i=>i.id===id?{...i,price:moneyInput(Number(net)),receiptDetails}:i));
+    setErrors({...errors,[`price-${id}`]:""});
+  }
+  return <section><div className="step-heading"><p className="eyebrow">A QUICK DOUBLE-CHECK</p><h1>Check the receipt</h1><p>Make sure each price is the whole line total after discounts.</p></div>
     <span className="source-badge">{s.source === "demo" ? "Sample bill · editable" : "Your photo · review required"}</span>
     {s.source === "photo" && <div className="photo-review paper">
-      {photoUrl ? <><a href={photoUrl} target="_blank" rel="noreferrer" className="photo-link"><img src={photoUrl} alt="Your original receipt — open to zoom"/><span>Open photo to zoom ↗</span></a><div className="row"><Button variant="outline" onClick={onRotate} disabled={busy}><RotateCw size={16}/> Adjust or rotate photo</Button><Button variant="outline" onClick={onRecognize} disabled={busy}>Recognize again</Button></div></> : <p>Your draft is saved. Reattach the photo to view it; this will not replace your edits.</p>}
+      {photoUrl ? <><a href={photoUrl} target="_blank" rel="noreferrer" className="photo-link"><img src={photoUrl} alt="Your original receipt — open to zoom"/><span>Open photo to zoom ↗</span></a><div className="row"><Button variant="outline" onClick={onRotate} disabled={busy}><RotateCw size={16}/> Adjust or rotate photo</Button><Button variant="outline" onClick={()=>onRecognize()} disabled={busy}>Recognize again</Button><Button variant="outline" onClick={()=>onRecognize(true)} disabled={busy}>Enhanced scan</Button></div></> : <p>Your draft is saved. Reattach the photo to view it; this will not replace your edits.</p>}
       <PhotoInput label="Reattach receipt photo" onSelect={onAttach}/>
       {busy && <div role="status"><p>{stage}</p><Button variant="outline" onClick={onCancel}>Cancel recognition</Button></div>}
       {draft && <details><summary>Original recognized text</summary><pre>{draft.rawText || "No text recognized."}</pre></details>}
+      {draft?.alternateRawText&&<details><summary>Alternative recognized text</summary><pre>{draft.alternateRawText}</pre></details>}
     </div>}
     <form onSubmit={submit} noValidate>
       <div className="paper receipt-editor"><div className="receipt-heading"><b>THE RECEIPT</b><span>USD</span></div>
@@ -51,6 +64,7 @@ export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, s
           <label className="item-name">Item {index + 1}<Input id={`name-${item.id}`} aria-label={`Item ${index + 1} name`} value={item.name} aria-invalid={!!errors[`name-${item.id}`]} aria-describedby={errors[`name-${item.id}`] ? `name-${item.id}-error` : undefined} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, name: e.target.value } : i))}/>{error(`name-${item.id}`)}</label>
           <label className="item-price">Price<Input id={`price-${item.id}`} aria-label={`Price for ${item.name || `item ${index + 1}`}`} inputMode="decimal" value={item.price} aria-invalid={!!errors[`price-${item.id}`]} aria-describedby={errors[`price-${item.id}`] ? `price-${item.id}-error` : undefined} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, price: e.target.value } : i))}/>{error(`price-${item.id}`)}</label>
           <Button type="button" className="remove-item" variant="ghost" aria-label={`Remove ${item.name || `item ${index + 1}`}`} onClick={() => setItems(items.filter(i => i.id !== item.id))}><Trash2 size={17}/></Button>
+          {item.receiptDetails&&<ReceiptLineDetails name={item.name} details={item.receiptDetails} onDiscountChoice={choice=>chooseDiscount(item.id,choice)}/>}
         </div>)}
         <Button type="button" variant="outline" className="add-item" onClick={() => setItems([...items, { id: crypto.randomUUID(), name: "", price: "", allocation: {mode:"equal",personIds:[]} }])}><Plus size={17}/> Add item</Button>
         <div className="totals-line"><span>Items subtotal</span><b>{formatMoney(subtotal)}</b></div>

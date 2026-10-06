@@ -6,14 +6,14 @@ import { classifyReceiptLines, type ClassifiedLine } from "./classifyLines";
 import { resolveReceiptAmounts } from "./resolveAmounts";
 const freshDetails=():ReceiptDetails=>({sourceLines:[],modifiers:[],discounts:[],reviewCodes:[]});
 function itemName(row:ClassifiedLine):{name:string;quantity:number|null;unitPriceCents:number|null}{
- let name=row.label.replace(/^[|:;]\s*/,"");let quantity:number|null=null;
+ let name=row.label.replace(/^[|:;−-]\s*/,"");let quantity:number|null=null;
  const prefix=name.match(/^(\d+)\s+(?:[x×]\s*)?/i);
  if(prefix){quantity=Number(prefix[1]);name=name.slice(prefix[0].length).replace(/^\d+\s+(?=[a-z])/i,"");}
  const suffix=name.match(/\s*[x×]\s*(\d+)\s*$/i);if(suffix){quantity=Number(suffix[1]);name=name.slice(0,suffix.index);}
  const unit=name.match(/\(\s*\$?(\d+\.\d{2})\s*\)/);
  const unitPriceCents=unit?parseMoney(unit[1]):null;
  if(unit)name=name.replace(unit[0],"").trim();
- return {name:name.trim(),quantity:Number.isSafeInteger(quantity)&&quantity!>0?quantity:null,unitPriceCents};
+ return {name:name.trim(),quantity:quantity!==null&&Number.isSafeInteger(quantity)&&quantity>0?quantity:null,unitPriceCents};
 }
 /** Receipt semantics are separated from character recognition. Every suggestion retains its source. */
 export function parseReceiptText(text:string,lines?:OcrLine[]):ReceiptDraft{
@@ -72,22 +72,26 @@ export function parseReceiptText(text:string,lines?:OcrLine[]):ReceiptDraft{
    continue;
   }
   if(role==="modifier"&&last()){
-   const d=details(last()!);d.modifiers.push({text:row.text,sourceLine:row.raw});d.sourceLines.push(row.raw);continue;
+   const parent=last()!.details?.parentSourceId;
+   const main=parent?draft.items.find(i=>i.details?.sourceId===parent)??last()!:last()!;
+   const d=details(main);d.modifiers.push({text:row.text,sourceLine:row.raw});d.sourceLines.push(row.raw);continue;
   }
   if(role==="item"&&amount!==null){
    if(row.negative){warn(`Negative amount needs manual review: ${row.raw}`);continue;}
-   const parsed=itemName(row);const d=freshDetails();d.sourceLines.push(row.raw);d.quantity=parsed.quantity??pendingUnit?.quantity??1;d.unitPriceCents=parsed.unitPriceCents??pendingUnit?.price??null;d.taxCode=row.taxCode;
+   const parsed=itemName(row);const d=freshDetails();d.sourceId=`line-${index}`;d.sourceLines.push(row.raw);d.quantity=parsed.quantity??pendingUnit?.quantity??1;d.unitPriceCents=parsed.unitPriceCents??pendingUnit?.price??null;d.taxCode=row.taxCode;d.printedPriceCents=amount;
    if(row.bbox)d.bbox=row.bbox;
    if(pendingUnit){d.sourceLines.unshift(pendingUnit.source);pendingUnit=null;}
-   if(/^add\b/i.test(parsed.name)&&last())d.parentSourceId=last()!.sourceLine;
+   if(/^add\b/i.test(parsed.name)&&last())d.parentSourceId=last()!.details?.sourceId;
    if((parsed.quantity??1)>1)warn(`Check quantity: confirm the line total for ${parsed.name}.`);
    if(d.unitPriceCents!==null&&BigInt(d.unitPriceCents!)*BigInt(d.quantity!)!==BigInt(amount))d.reviewCodes.push("unit-price");
    draft.items.push({name:parsed.name,priceCents:amount,sourceLine:row.raw,details:d});continue;
   }
-  if(role==="unknown"&&/[a-z]/i.test(row.text)){
+  if((role==="unknown"||role==="modifier")&&/[a-z]/i.test(row.text)){
    // A merchant name preceding an address/service header is metadata; a lone missing dish stays editable.
    if(index<firstPrice&&rows.slice(index+1,firstPrice).some(r=>r.role==="metadata"))continue;
-   if(last()&&(/^chicken\b.*[^\w\s]/i.test(row.text)||row.bbox&&last()!.details?.bbox&&row.bbox.x0>last()!.details!.bbox!.x0+20)){
+   const custom=last()&&/^(?:CYO\b|custom\b|build.*own)/i.test(last()!.name);
+   const indented=/^\s{2,}\S/.test(row.raw)||(row.bbox&&last()?.details?.bbox&&row.bbox.x0>last()!.details!.bbox!.x0+20);
+   if(last()&&(/^chicken\b.*[^\w\s]/i.test(row.text)||custom&&indented)){
     const d=details(last()!);d.modifiers.push({text:row.text,sourceLine:row.raw});d.sourceLines.push(row.raw);continue;
    }
    const d=freshDetails();d.sourceLines.push(row.raw);d.reviewCodes.push("missing-price");

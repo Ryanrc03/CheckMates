@@ -6,8 +6,10 @@ export type ReceiptDiscount = {
 export type ReceiptDetails = {
   quantity?: number | null;
   unitPriceCents?: number | null;
+  printedPriceCents?: number | null;
   taxCode?: string | null;
   sourceLines: string[];
+  sourceId?: string;
   bbox?: { x0: number; y0: number; x1: number; y1: number };
   parentSourceId?: string;
   modifiers: { text: string; sourceLine: string }[];

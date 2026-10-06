@@ -10,6 +10,7 @@ export type ReceiptDraft = {
   printedSubtotalCents: number | null;
   printedTotalCents: number | null;
   warnings: string[];
+  alternateRawText?: string;
 };
 export type ReceiptEdit = { items: { id: string; name: string; price: string; allocation: ItemAllocation; receiptDetails?: ReceiptDetails }[]; tax: string; chargedTip: string; addedTip: string; note: string };
 export type BillSession = {
