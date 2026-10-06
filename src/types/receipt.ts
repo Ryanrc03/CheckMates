@@ -1,6 +1,9 @@
-import type { Bill, WizardStep } from "./bill";
+import type { Bill, WizardStep, ItemAllocation } from "./bill";
+import type { ReceiptDetails } from "./receipt-details";
+export type DraftItem = { name: string; priceCents: number | null; sourceLine: string; details?: ReceiptDetails };
+export type AllocationEdit = { mode: "equal" | "ratio" | "quantity"; totalUnits: string; unitLabel: string; entries: { personId: string; value: string }[] };
 export type ReceiptDraft = {
-  items: { name: string; priceCents: number | null; sourceLine: string }[];
+  items: DraftItem[];
   rawText: string;
   taxCents: number | null;
   tipCents: number | null;
@@ -8,7 +11,7 @@ export type ReceiptDraft = {
   printedTotalCents: number | null;
   warnings: string[];
 };
-export type ReceiptEdit = { items: { id: string; name: string; price: string; personIds: string[] }[]; tax: string; chargedTip: string; addedTip: string; note: string };
+export type ReceiptEdit = { items: { id: string; name: string; price: string; allocation: ItemAllocation; receiptDetails?: ReceiptDetails }[]; tax: string; chargedTip: string; addedTip: string; note: string };
 export type BillSession = {
   bill: Bill;
   step: WizardStep;
@@ -19,4 +22,5 @@ export type BillSession = {
   addedTipCents?: number;
   reviewNote?: string;
   receiptEdit?: ReceiptEdit | null;
+  allocationEdits?: Record<string, AllocationEdit>;
 };

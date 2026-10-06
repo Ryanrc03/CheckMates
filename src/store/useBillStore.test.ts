@@ -9,9 +9,9 @@ function memory() { const data = new Map<string, string>(); return { getItem: (k
 
 describe("bill sessions", () => {
   it("creates independent demo bills with no assignments", () => {
-    const a = createMockBill(); const b = createMockBill(); a.items[0].personIds.push("x");
+    const a = createMockBill(); const b = createMockBill(); if(a.items[0].allocation.mode==="equal") a.items[0].allocation.personIds.push("x");
     expect(b.items.map(i => i.priceCents)).toEqual([1495, 595, 350]);
-    expect(b.items[0].personIds).toEqual([]); expect(b.people).toEqual([]);
+    expect(b.items[0].allocation).toEqual({mode:"equal",personIds:[]}); expect(b.people).toEqual([]);
     expect(b.taxCents).toBe(201); expect(b.tipCents).toBe(0);
   });
   it("edits, assigns, removes people and preserves remaining selections", async () => {
@@ -22,7 +22,7 @@ describe("bill sessions", () => {
     expect(s().bill.people.map(p => p.name)).toEqual(["A", "B"]);
     const [a, b] = s().bill.people; const item = s().bill.items[0];
     s().assignEveryone(item.id); s().renamePerson(a.id, "Alex"); s().removePerson(b.id);
-    expect(s().bill.items[0].personIds).toEqual([a.id]); expect(s().bill.people[0].id).toBe(a.id);
+    expect(s().bill.items[0].allocation).toEqual({mode:"equal",personIds:[a.id]}); expect(s().bill.people[0].id).toBe(a.id);
     s().updateItem(item.id, { priceCents: 1001 }); s().setExtras(151, 302);
     s().goTo("result"); expect(s().step).toBe("people");
     s().bill.items.forEach(i => s().assignEveryone(i.id)); s().goTo("result"); expect(s().step).toBe("result");
@@ -57,11 +57,11 @@ describe("bill sessions", () => {
   });
   it("restores partial receipt input without rounding or discarding it", async () => {
     const storage = memory(); const store = createBillStore(storage); await store.getState().hydrate(); store.getState().startBill("demo");
-    const edit = { items: [{ id: "x", name: "Soup", price: "12.", personIds: [] }], tax: "", chargedTip: "0", addedTip: "1.2", note: "Checking tax" };
+    const edit = { items: [{ id: "x", name: "Soup", price: "12.", allocation: {mode:"equal" as const,personIds:[]} }], tax: "", chargedTip: "0", addedTip: "1.2", note: "Checking tax" };
     store.getState().saveReceiptEdit(edit); const next = createBillStore(storage); await next.getState().hydrate(); expect(next.getState().receiptEdit).toEqual(edit);
   });
   it("does not restore action or runtime keys from browser data", async () => {
-    const storage = memory(); storage.setItem("bitesplit-session", JSON.stringify({ version: 1, state: { bill: createMockBill(), step: "receipt", source: "demo", fileName: null, receiptDraft: null, startBill: "bad", storageError: "fake", hasHydrated: false } }));
+    const storage = memory(); storage.setItem("bitesplit-session", JSON.stringify({ version: 2, state: { bill: createMockBill(), step: "receipt", source: "demo", fileName: null, receiptDraft: null, startBill: "bad", storageError: "fake", hasHydrated: false } }));
     const store = createBillStore(storage); await store.getState().hydrate(); expect(typeof store.getState().startBill).toBe("function"); expect(store.getState().storageError).toBeNull();
   });
 });
