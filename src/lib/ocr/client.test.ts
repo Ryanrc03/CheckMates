@@ -1,6 +1,20 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { createReceiptRecognizer, type OcrWorker } from "./client";
 afterEach(() => vi.useRealTimers());
+it("automatically reads missing financial fields without replacing dish evidence",async()=>{
+ let calls=0;const w={recognize:async()=>({data:{text:++calls===1?"Soup $8.00":"Subtotal $8.00\nTax $0.48\nTotal $8.48",confidence:80}}),terminate:vi.fn(async()=>{})};
+ const prepare=vi.fn(async()=>new Blob());const run=createReceiptRecognizer(async()=>w,prepare);
+ const result=await run(new Blob(),{signal:new AbortController().signal,onProgress:()=>{}});
+ expect(calls).toBe(2);expect(prepare).toHaveBeenCalledOnce();expect(result.text).toBe("Soup $8.00");expect(result.financialScans?.[0].text).toContain("Tax $0.48");
+});
+it("cancels a pending automatic tax pass within the same request",async()=>{
+ const pendingScan=deferred<{data:{text:string;confidence:number}}>();let calls=0;
+ const w={recognize:async()=>++calls===1?{data:{text:"Soup $8.00",confidence:80}}:pendingScan.promise,terminate:vi.fn(async()=>{})};
+ const run=createReceiptRecognizer(async()=>w,async()=>new Blob()),controller=new AbortController();
+ const job=run(new Blob(),{signal:controller.signal,onProgress:()=>{}});
+ while(calls<2)await Promise.resolve();controller.abort();await expect(job).rejects.toMatchObject({name:"AbortError"});expect(w.terminate).toHaveBeenCalledOnce();
+ pendingScan.resolve({data:{text:"Tax $0.48",confidence:80}});
+});
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(r => { resolve = r; }); return { promise, resolve }; }
 function worker(text = "Soup 8.00") { return { recognize: async () => ({ data: { text, confidence: 90 } }), terminate: vi.fn(async () => {}) }; }
 it("enhanced scan attempts at most one candidate and shares the existing deadline",async()=>{

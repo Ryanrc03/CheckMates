@@ -1,6 +1,7 @@
 import type {OcrEvidence} from "@/types/ocr";
 import type {ReceiptDraft} from "@/types/receipt";
 import {parseReceiptText} from "./parseReceipt";
+import {mergeFinancialEvidence} from "./financial-evidence";
 export function shouldRetryReceipt(evidence:OcrEvidence,draft:ReceiptDraft):boolean{
  if(evidence.confidence<60||draft.printedSubtotalCents===null||draft.taxCents===null||draft.printedTotalCents===null||draft.items.some(i=>i.priceCents===null))return true;
  return draft.items.reduce((s,i)=>s+BigInt(i.priceCents??0),0n)!==BigInt(draft.printedSubtotalCents);
@@ -10,7 +11,7 @@ export function parseReceiptEvidence(evidence:OcrEvidence):ReceiptDraft{
  const draft=parseReceiptText(evidence.text,evidence.lines);
  if(evidence.enhancementError)draft.warnings.push("Enhanced scan was unavailable. Review the original scan or retry.");
  if(evidence.confidence<60)draft.warnings.push("Recognition confidence is low. Compare every line with the photo.");
- if(!evidence.alternate)return draft;
+ if(!evidence.alternate){if(evidence.financialScans)mergeFinancialEvidence(draft,evidence.financialScans);return draft;}
  draft.alternateRawText=evidence.alternate.text;
  const other=parseReceiptText(evidence.alternate.text,evidence.alternate.lines);
  const used=new Set<number>();
@@ -26,6 +27,7 @@ export function parseReceiptEvidence(evidence:OcrEvidence):ReceiptDraft{
  for(const key of ["printedSubtotalCents","taxCents","printedTotalCents","tipCents"] as const){
   if(draft[key]!==null&&other[key]!==null&&draft[key]!==other[key]){draft[key]=null;draft.warnings.push(`Scans disagree on ${key}. Confirm the amount from the photo.`);}
  }
+ if(evidence.financialScans)mergeFinancialEvidence(draft,evidence.financialScans);
  return draft;
 }
 /** Ranking uses extracted structure, never rewrites prices to force a printed total. */

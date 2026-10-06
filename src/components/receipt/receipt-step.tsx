@@ -59,6 +59,7 @@ export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, s
       {busy && <div role="status"><p>{stage}</p><Button variant="outline" onClick={onCancel}>Cancel recognition</Button></div>}
       {draft && <details><summary>Original recognized text</summary><pre>{draft.rawText || "No text recognized."}</pre></details>}
       {draft?.alternateRawText&&<details><summary>Alternative recognized text</summary><pre>{draft.alternateRawText}</pre></details>}
+      {draft?.financialRawText?.length&&<details><summary>Tax and total recognition evidence</summary><pre>{draft.financialRawText.join("\n\n---\n\n")}</pre></details>}
     </div>}
     <form onSubmit={submit} noValidate>
       <div className="paper receipt-editor"><div className="receipt-heading"><b>THE RECEIPT</b><span>USD</span></div>

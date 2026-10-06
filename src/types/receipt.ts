@@ -12,6 +12,7 @@ export type ReceiptDraft = {
   warnings: string[];
   alternateRawText?: string;
   unassignedDiscounts?: string[];
+  financialRawText?: string[];
 };
 export type ReceiptEdit = { items: { id: string; name: string; price: string; allocation: ItemAllocation; receiptDetails?: ReceiptDetails }[]; tax: string; chargedTip: string; addedTip: string; note: string; unassignedDiscountsReviewed?: boolean };
 export type BillSession = {

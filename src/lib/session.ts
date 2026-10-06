@@ -41,6 +41,7 @@ export function receiptReady(bill: Bill): boolean {
   return isBill(bill) && bill.items.length>0 && bill.items.every(i=>!!i.name.trim() && !i.receiptDetails?.discounts.some(d=>d.inclusion === "unresolved")) && (bill.items.some(i=>i.priceCents>0) || bill.taxCents+bill.tipCents===0);
 }
 export function isDraft(v: unknown): v is ReceiptDraft {
+  if(record(v)&&v.financialRawText!==undefined&&!strings(v.financialRawText))return false;
   if(record(v)&&v.unassignedDiscounts!==undefined&&!strings(v.unassignedDiscounts))return false;
   if(record(v)&&v.alternateRawText!==undefined&&typeof v.alternateRawText!=="string")return false;
   return record(v) && typeof v.rawText==="string" && Array.isArray(v.items) && v.items.every(i=>record(i) && typeof i.name==="string" && nullableCents(i.priceCents) && typeof i.sourceLine==="string" && details(i.details)) && [v.taxCents,v.tipCents,v.printedSubtotalCents,v.printedTotalCents].every(nullableCents) && strings(v.warnings);
