@@ -55,6 +55,8 @@ OCR creates a draft, never a final bill. Order quantities, unit prices, tax code
 
 ## Recovery
 
+Use **Reset bill** in the header from any step to clear the receipt, people, amounts, unfinished allocations and photo adjustments and return to Start. It also cancels recognition so late output cannot restore the previous bill. Browser refresh continues to restore the current saved draft; use Reset bill when starting a different bill.
+
 The `bitesplit-session` localStorage entry has schema version 2. Version 1 assignments migrate automatically to equal allocations; applied weights and unfinished allocation inputs survive refresh. It stores items, names, assignments, current step, source filename, raw OCR draft/warnings, and unfinished editor text. It excludes photos, object URLs, worker state, progress, and calculated results. After refresh, reattach a photo to preview it without replacing edits. Recognition must be explicitly restarted. Invalid cache is discarded safely; a failed write shows a warning but editing continues. Start a new bill replaces the saved session with an empty one.
 
 ## Verification and limits

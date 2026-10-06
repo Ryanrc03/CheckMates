@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Utensils } from "lucide-react";
+import { RotateCcw, Utensils } from "lucide-react";
+import { Button } from "./ui/button";
 import { useBillStore } from "@/store/useBillStore";
 import { HomeStep } from "./home/home-step";
 import { ReceiptStep } from "./receipt/receipt-step";
@@ -54,8 +55,8 @@ export function BillWizard() {
     await recognizePrepared(image, selected);
   }
   function attach(selected: File) { selectForAdjustment(selected); }
-  function reset() { cancel(); releasePhoto(); setError(null); s.resetBill(); }
-  return <div className="app-shell"><header className="brand-header"><div className="brand"><span><Utensils size={21}/></span>CheckMates<span className="brand-dot">.</span></div><span className="header-note">A fair share of a good time.</span></header>
+  function reset() { cancel(); releasePhoto(); enhancedScan.current = false; setStage(""); setError(null); setDraftVersion(v => v + 1); s.resetBill(); }
+  return <div className="app-shell"><header className="brand-header"><div className="brand"><span><Utensils size={21}/></span>CheckMates<span className="brand-dot">.</span></div><div className="header-actions"><span className="header-note">A fair share of a good time.</span><Button type="button" variant="outline" size="sm" className="reset-bill" disabled={!s.hasHydrated} onClick={reset} title="Clear the current bill and start again"><RotateCcw aria-hidden="true" size={15}/> Reset bill</Button></div></header>
     <main className="wizard-main">
       {!s.hasHydrated ? <p role="status">Getting your table ready…</p> : adjusting && adjustUrl ? <PhotoAdjustment key={adjustUrl} file={adjusting} originalUrl={adjustUrl} initialAdjustment={adjustments.get(adjusting)} onAdjustmentChange={saveAdjustment} onSelect={selectForAdjustment} onConfirm={image => void confirmAdjustment(image)} onBack={discardAdjustment} onManual={() => { if (s.step === "receipt" && !window.confirm("Enter items manually? This replaces the current receipt edits with a blank draft.")) return; commitPhoto(adjusting); setAdjusting(null); s.startBill("photo", adjusting.name); s.setReceiptDraft(parseReceiptText("")); setDraftVersion(v => v + 1); }}/> : <>
         <nav aria-label="Bill progress" className="step-progress">{["Start", "Receipt", "Friends", "Split", "Result"].map((label, i) => <div key={label} aria-current={s.step === steps[i] ? "step" : undefined} className={i <= steps.indexOf(s.step) ? "active" : ""}><span>{i + 1}</span><small>{label}</small></div>)}</nav>
