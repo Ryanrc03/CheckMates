@@ -1,0 +1,92 @@
+{
+  "source": "User supplied photograph, manually annotated independently of OCR",
+  "imageKind": "private-photograph",
+  "items": [
+    {
+      "sourceRowId": "chinatown-supermarket-1",
+      "priceCents": 999,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-2",
+      "priceCents": 999,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-3",
+      "priceCents": 599,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-4",
+      "priceCents": 399,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-5",
+      "priceCents": 299,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-6",
+      "priceCents": 450,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-7",
+      "priceCents": 649,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-8",
+      "priceCents": 399,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-9",
+      "priceCents": 399,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-10",
+      "priceCents": 599,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-11",
+      "priceCents": 350,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-12",
+      "priceCents": 349,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-13",
+      "priceCents": 350,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-14",
+      "priceCents": 349,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "chinatown-supermarket-15",
+      "priceCents": 259,
+      "quantity": 1
+    }
+  ],
+  "subtotalCents": 7448,
+  "taxCents": 224,
+  "totalCents": 7672,
+  "discountsAlreadyIncluded": [
+    100,
+    49,
+    49,
+    50,
+    49,
+    50
+  ]
+}
