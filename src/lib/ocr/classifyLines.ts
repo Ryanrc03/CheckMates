@@ -30,7 +30,7 @@ export function classifyReceiptLines(text:string,lines?:OcrLine[]):ClassifiedLin
   if(/tax\s*code.*taxable/i.test(s)){table=true;role="tax-table";}
   else if(table&&/^\d+\s+.*\d+(?:\.\d+)?%/i.test(s))role="tax-detail";
   else if(/\b(suggest|recommended|tip guide|gratuity guide)/i.test(s))role="suggestion";
-  else if(/\b(?:paid\s+by|payment|cash\s+change|you\s+saved|credit\s+sale|amount\s*:|visa|mastercard|amex|discover|tender|auth|contactless)\b/i.test(s))role="metadata";
+  else if(/\b(?:paid\s+by|payment|cash\s+change|you\s+saved|credit\s+sale|amount\s*:|visa|mastercard|amex|discover|tender|auth(?:orization)?|contactless|verified on device)\b|^(?:ticket|receipt)\s*:|^aid\s+[a-f\d ]+$|^for here$/i.test(s))role="metadata";
   else if(/\b(?:sub\s*total)\b/i.test(label)||/\btotal\s+\d+\s+item\(s\)/i.test(label))role="subtotal";
   else if(/\b(?:tax(?:es)?|vat)\b/i.test(label))role="tax";
   else if(/\b(?:grand\s*total|total|amount due|balance due)\b/i.test(label))role="total";

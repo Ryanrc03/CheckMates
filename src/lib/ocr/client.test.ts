@@ -1,6 +1,13 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { createReceiptRecognizer, type OcrWorker } from "./client";
 afterEach(() => vi.useRealTimers());
+it("rescans an inconsistent ledger even when all financial fields were identified",async()=>{
+ let calls=0;
+ const texts=["Soup $20.00\nSubtotal $20.00\nTax $1.05\nTotal $21.65","Subtotal $20.00\nTax $1.65\nTotal $21.65","Subtotal $20.00\nTax $1.65\nTotal $21.65"];
+ const run=createReceiptRecognizer(async()=>({recognize:async()=>({data:{text:texts[calls++],confidence:90}}),terminate:async()=>{}}),async()=>new Blob());
+ const result=await run(new Blob(),{signal:new AbortController().signal,onProgress:()=>{}});
+ expect(calls).toBe(3);expect(result.financialScans).toHaveLength(2);
+});
 it("automatically reads missing financial fields without replacing dish evidence",async()=>{
  let calls=0;const w={recognize:async()=>({data:{text:++calls===1?"Soup $8.00":"Subtotal $8.00\nTax $0.48\nTotal $8.48",confidence:80}}),terminate:vi.fn(async()=>{})};
  const prepare=vi.fn(async()=>new Blob());const run=createReceiptRecognizer(async()=>w,prepare);
