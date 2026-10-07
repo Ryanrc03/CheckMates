@@ -2,7 +2,7 @@
 
 [Live demo](https://checkmates-pi.vercel.app) ? [Source on GitHub](https://github.com/Ryanrc03/CheckMates)
 
-A mobile-first receipt splitter: photo → adjustable correction → real OCR → review → friends → assignments → exact amounts and a copyable summary. English interface, USD, no account or payment processing.
+A mobile-first receipt splitter: photo → adjustable correction → real OCR → review → friends → assignments → exact amounts, item-by-item explanations, and a copyable summary. English interface, USD, no account or payment processing.
 
 ## Run locally
 
@@ -14,6 +14,8 @@ npm run dev
 ```
 
 Open http://localhost:3000. `predev` prepares the pinned OCR assets automatically.
+
+To try the split explanation locally, choose **Try a sample bill**, review the editable amounts, add friends, assign every item, then open each person's **View breakdown** on the result page. The colored bar compares each person's items, tax and tip on one shared scale. Expand a card to check each dish and the exact cent allocation. The public demo above still shows the last deployed version until this branch is approved and deployed.
 
 ```sh
 npm run lint
@@ -30,7 +32,7 @@ npm start
 
 - `src/components/`: one five-step client wizard and reusable controls.
 - `src/store/useBillStore.ts`: Zustand actions, validated versioned recovery, and reset.
-- `src/lib/money.ts`, `split.ts`, `share.ts`: pure integer-cent calculations and summary text.
+- `src/lib/money.ts`, `split.ts`, `share.ts`: pure integer-cent calculations, exact allocation details and summary text.
 - `src/lib/ocr/`: image decoding, real Tesseract worker lifecycle, conservative text parsing, and printed-total reconciliation.
 - `src/lib/receipt-image/`: per-photo tilt and page-boundary suggestions, perspective correction, and manual adjustment before OCR.
 - `src/types/`: confirmed bills, unconfirmed receipt drafts, and raw editor state.
