@@ -1,4 +1,6 @@
 import type { Bill, SplitResult } from "@/types/bill";
+import { allocateItemCents } from "./item-allocation";
+export { allocateCents } from "./allocation";
 import type { AllocationTrace, BillBreakdown, ItemAllocation } from "@/types/split-detail";
 
 function assertCents(value: number, label: string): void {
@@ -31,10 +33,6 @@ export function allocateCentsDetailed(total: number, weights: number[]): Allocat
   return { poolCents: total, weightSum: weightSum.toString(), parts: parts.map(({ weight, baseCents, extraCent, cents }) => ({ weight, baseCents, extraCent, cents })) };
 }
 
-export function allocateCents(total: number, weights: number[]): number[] {
-  return allocateCentsDetailed(total, weights).parts.map(part => part.cents);
-}
-
 export function explainSplitBill(bill: Bill): BillBreakdown {
   assertCents(bill.taxCents, "Tax");
   assertCents(bill.tipCents, "Tip");
@@ -45,19 +43,17 @@ export function explainSplitBill(bill: Bill): BillBreakdown {
   const itemTotals = ids.map(() => 0);
   const items: ItemAllocation[] = [];
   let subtotalCents = 0;
+  const itemShares: NonNullable<SplitResult["itemShares"]> = [];
 
   for (const item of bill.items) {
     assertCents(item.priceCents, "Item price");
-    if (item.personIds.length === 0) throw new Error(`Assign ${item.name || "every item"} to someone.`);
-    if (new Set(item.personIds).size !== item.personIds.length) throw new Error("An item cannot assign a person twice.");
-    const selectedIndexes = item.personIds.map((id) => ids.indexOf(id));
-    if (selectedIndexes.some((index) => index < 0)) throw new Error("An item refers to an unknown person.");
-    selectedIndexes.sort((a, b) => a - b);
     subtotalCents += item.priceCents;
     assertCents(subtotalCents, "Subtotal");
-    const allocation = allocateCentsDetailed(item.priceCents, selectedIndexes.map(() => 1));
-    selectedIndexes.forEach((index, selectedIndex) => { itemTotals[index] += allocation.parts[selectedIndex].cents; });
-    items.push({ itemId: item.id, itemName: item.name, priceCents: item.priceCents, personIds: selectedIndexes.map(index => ids[index]), allocation });
+    const shares=allocateItemCents(item,bill.people);
+    itemShares.push({itemId:item.id,itemName:item.name,mode:item.allocation.mode,unitLabel:item.allocation.mode==="quantity"?item.allocation.unitLabel:"",shares});
+    for (const share of shares) itemTotals[ids.indexOf(share.personId)] += share.cents;
+    const allocation = allocateCentsDetailed(item.priceCents, shares.map(share=>share.units));
+    items.push({ itemId: item.id, itemName: item.name, priceCents: item.priceCents, personIds: shares.map(share=>share.personId), allocation, mode:item.allocation.mode, unitLabel:item.allocation.mode==="quantity"?item.allocation.unitLabel:"" });
   }
 
   assertCents(subtotalCents, "Subtotal");
@@ -71,6 +67,7 @@ export function explainSplitBill(bill: Bill): BillBreakdown {
     taxCents: bill.taxCents,
     tipCents: bill.tipCents,
     totalCents,
+    itemShares,
     people: bill.people.map((person, index) => ({
       ...person,
       itemsCents: itemTotals[index],

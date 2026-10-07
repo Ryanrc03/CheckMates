@@ -1,0 +1,17 @@
+Krung Thep Thai Cuisine
+Dine-In
+Party Size: 5
+1 2 Fried Tofu $6.00
+1 25 Beef Noodles $12.00
+    [2**]
+1 Curry Noodles $14.00
+    [Chicken]
+2 34 Pineapple Fried Rice ($14.00) $28.00
+    [Chicken][3***]
+3 Sticky Rice with Peach ($8.00) $24.00
+1 Diet Coke $3.50
+Total 9 item(s) $87.50
+Taxes: $5.25
+Grand Total $92.75
+Paid by Credit $92.75
+Thank you very much.

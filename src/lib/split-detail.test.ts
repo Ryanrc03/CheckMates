@@ -5,14 +5,24 @@ import { allocateCents, allocateCentsDetailed, explainSplitBill, splitBill } fro
 const bill: Bill = {
   people: [{ id: "a", name: "Same" }, { id: "b", name: "Same" }],
   items: [
-    { id: "shared", name: "Shared", priceCents: 1001, personIds: ["b", "a"] },
-    { id: "side", name: "Side", priceCents: 500, personIds: ["b"] },
+    { id: "shared", name: "Shared", priceCents: 1001, allocation: {mode:"equal",personIds: ["b", "a"]} },
+    { id: "side", name: "Side", priceCents: 500, allocation: {mode:"equal",personIds: ["b"]} },
   ],
   taxCents: 151,
   tipCents: 302,
 };
 
 describe("exact split explanation", () => {
+  it("explains consumed quantities with the same weighted pennies as the actual split",()=>{
+    const weighted:Bill={people:[{id:"a",name:"A"},{id:"b",name:"B"},{id:"c",name:"C"},{id:"d",name:"D"}],items:[{id:"wings",name:"Wings",priceCents:1001,allocation:{mode:"quantity",totalUnits:6,unitLabel:"pieces",shares:[{personId:"d",units:1},{personId:"b",units:2},{personId:"a",units:2},{personId:"c",units:1}]}}],taxCents:101,tipCents:201};
+    const detail=explainSplitBill(weighted);
+    expect(detail.items[0].personIds).toEqual(["a","b","c","d"]);
+    expect(detail.items[0].allocation.parts.map(p=>p.weight)).toEqual([2,2,1,1]);
+    expect(detail.items[0].allocation.parts.map(p=>p.cents)).toEqual([334,333,167,167]);
+    expect(detail.items[0].allocation.weightSum).toBe("6");expect(detail.items[0].unitLabel).toBe("pieces");
+    expect(detail.result.itemShares?.[0].shares.map(p=>p.cents)).toEqual(detail.items[0].allocation.parts.map(p=>p.cents));
+    expect(detail.result.people.reduce((sum,p)=>sum+p.totalCents,0)).toBe(1303);
+  });
   it("keeps exact shared-item and fee remainders", () => {
     const before = structuredClone(bill);
     const detail = explainSplitBill(bill);
@@ -38,8 +48,8 @@ describe("exact split explanation", () => {
 
   it("retains validation for invalid assignments and unsafe values", () => {
     expect(() => explainSplitBill({ ...bill, people: [...bill.people, bill.people[0]] })).toThrow();
-    expect(() => explainSplitBill({ ...bill, items: [{ ...bill.items[0], personIds: ["a", "a"] }] })).toThrow();
-    expect(() => explainSplitBill({ ...bill, items: [{ ...bill.items[0], personIds: ["unknown"] }] })).toThrow();
+    expect(() => explainSplitBill({ ...bill, items: [{ ...bill.items[0], allocation:{mode:"equal",personIds: ["a", "a"]} }] })).toThrow();
+    expect(() => explainSplitBill({ ...bill, items: [{ ...bill.items[0], allocation:{mode:"equal",personIds: ["unknown"]} }] })).toThrow();
     expect(() => explainSplitBill({ ...bill, taxCents: Number.MAX_SAFE_INTEGER })).toThrow();
     expect(() => allocateCentsDetailed(1, [0])).toThrow();
   });

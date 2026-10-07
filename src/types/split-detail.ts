@@ -8,5 +8,7 @@ export type ItemAllocation = {
   priceCents: number;
   personIds: string[];
   allocation: AllocationTrace;
+  mode: "equal" | "ratio" | "quantity";
+  unitLabel: string;
 };
 export type BillBreakdown = { result: SplitResult; items: ItemAllocation[]; tax: AllocationTrace; tip: AllocationTrace };

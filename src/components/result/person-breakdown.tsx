@@ -26,6 +26,7 @@ export function PersonBreakdown({ personId, breakdown, people }: { personId: str
       return <li key={item.itemId}>
         <div className="breakdown-row"><span>{item.itemName}</span><b>{formatMoney(portion.cents)}</b></div>
         <p>{formatMoney(item.priceCents)} {item.personIds.length === 1 ? "· Only you" : `· Shared by ${item.personIds.length}: ${item.personIds.map(id => people.find(person => person.id === id)?.name).join(", ")}`}</p>
+        {item.mode!=="equal"&&<p>{portion.weight}/{item.allocation.weightSum} {item.unitLabel} · {formatMoney(portion.cents)}</p>}
         {item.personIds.length > 1 && <p>Base {formatMoney(portion.baseCents)} + remaining {formatMoney(portion.extraCent ? 1 : 0)} = {formatMoney(portion.cents)}</p>}
       </li>;
     })}</ul>

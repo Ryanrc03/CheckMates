@@ -1,10 +1,15 @@
 export type WizardStep = "home" | "receipt" | "people" | "split" | "result";
 
+export type ItemAllocation =
+  | { mode: "equal"; personIds: string[] }
+  | { mode: "ratio"; shares: { personId: string; units: number }[] }
+  | { mode: "quantity"; totalUnits: number; unitLabel: string; shares: { personId: string; units: number }[] };
 export type ReceiptItem = {
   id: string;
   name: string;
   priceCents: number;
-  personIds: string[];
+  allocation: ItemAllocation;
+  receiptDetails?: import("./receipt-details").ReceiptDetails;
 };
 
 export type Person = { id: string; name: string };
@@ -29,4 +34,8 @@ export type SplitResult = {
   tipCents: number;
   totalCents: number;
   people: PersonShare[];
+  itemShares?: {
+    itemId: string; itemName: string; mode: ItemAllocation["mode"]; unitLabel: string;
+    shares: { personId: string; units: number; weightSum: string; cents: number }[];
+  }[];
 };
