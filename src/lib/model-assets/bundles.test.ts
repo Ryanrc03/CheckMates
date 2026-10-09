@@ -7,7 +7,7 @@ import type { AssetEnv, ModelAssetsManifest } from "./types";
 const sha = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
 const A = new Uint8Array([1, 2, 3, 4]); const W = new Uint8Array([9, 9]);
 const manifest: ModelAssetsManifest = { version: 1, bundles: {
-  "translate-enzh": { id: "translate-enzh", version: "v1", license: "MPL-2.0", totalBytes: 6, downloadBytes: 6, extraBytes: 0, sources: [], files: [{ path: "a.bin", bytes: 4, sha256: sha(A), role: "model", cache: "cache-api" }, { path: "runtime/w.wasm", bytes: 2, sha256: sha(W), role: "runtime", cache: "cache-api" }, { path: "runtime/worker.js", bytes: 10, sha256: "x", role: "runtime", cache: "http" }] },
+  "translate-enzh": { id: "translate-enzh", version: "v1", license: "MPL-2.0", totalBytes: 6, downloadBytes: 6, extraBytes: 0, sources: [], files: [{ path: "a.bin", bytes: 4, sha256: sha(A), role: "model", cache: "cache-api" }, { path: "runtime/w.wasm", bytes: 2, sha256: sha(W), role: "runtime", cache: "cache-api" }, { path: "runtime/worker.js", bytes: 10, sha256: "0".repeat(64), role: "runtime", cache: "http" }] },
   "ocr-precise": { id: "ocr-precise", version: "v1", license: "Apache-2.0", totalBytes: 4, downloadBytes: 4, extraBytes: 0, sources: [], files: [{ path: "det.tar", bytes: 4, sha256: sha(A), role: "model", cache: "cache-api" }] } } };
 class FakeCache { store = new Map<string, Response>(); async match(key: string | Request) { const url = typeof key === "string" ? key : key.url; const hit = this.store.get(url); return hit ? hit.clone() : undefined; } async put(key: string, response: Response) { this.store.set(key, response); } async keys() { return [...this.store.keys()].map(url => new Request(url)); } }
 class FakeCaches { caches = new Map<string, FakeCache>(); async open(name: string) { if (!this.caches.has(name)) this.caches.set(name, new FakeCache()); return this.caches.get(name) as unknown as Cache; } async keys() { return [...this.caches.keys()]; } async delete(name: string) { return this.caches.delete(name); } async has(name: string) { return this.caches.has(name); } async match() { return undefined; } }
@@ -24,6 +24,7 @@ function makeEnv(overrides: Partial<AssetEnv> & { bytes?: Record<string, Uint8Ar
   };
   return { caches: fakeCaches as unknown as CacheStorage, storage: { getItem: k => store.get(k) ?? null, setItem: (k, v) => void store.set(k, v), removeItem: k => void store.delete(k) }, fetch: fetchImpl, origin: "https://x.test", now: () => clock += 1, ...overrides, fakeCaches, store, log };
 }
+const modelFetches = (env: { log: string[] }) => env.log.filter(u => u.includes("/models/translate-enzh/")).map(u => u.replace("https://x.test/models/translate-enzh/v1/", ""));
 beforeEach(() => resetManifestCache());
 describe("ensureBundle", () => {
   it("downloads missing cache-api files once, reports progress, verifies bytes, records install", async () => {
@@ -42,9 +43,20 @@ describe("ensureBundle", () => {
     await expect(ensureBundle("translate-enzh", { env })).rejects.toThrow(/a\.bin/);
     expect((await getBundleStatus("translate-enzh", env)).cached).toBe(false);
   });
-  it("aborts and keeps already stored files", async () => {
+  it("aborting mid-download keeps the files already stored, writes no record, and the next call resumes from them", async () => {
+    const env = makeEnv(); const controller = new AbortController();
+    await expect(ensureBundle("translate-enzh", { env, signal: controller.signal, onProgress: p => { if (p.stage === "downloading" && p.file === "a.bin" && p.loadedBytes === 4) controller.abort(); } })).rejects.toMatchObject({ name: "AbortError" });
+    expect([...env.fakeCaches.caches.get("cm-models-translate-enzh-vv1")!.store.keys()]).toEqual(["https://x.test/models/translate-enzh/v1/a.bin"]);
+    expect(readRecords(env.storage).bundles["translate-enzh"]).toBeUndefined(); expect((await getBundleStatus("translate-enzh", env)).cached).toBe(false);
+    expect(modelFetches(env)).toEqual(["a.bin"]); // the abort is noticed before the second file's fetch starts
+    const handle = await ensureBundle("translate-enzh", { env }); expect(new Uint8Array(await handle.bytes("runtime/w.wasm"))).toEqual(W);
+    expect(modelFetches(env)).toEqual(["a.bin", "runtime/w.wasm"]); // resumed: a.bin was not fetched again
+    expect(readRecords(env.storage).bundles["translate-enzh"]?.version).toBe("v1");
+  });
+  it("rejects with AbortError before fetching anything when the signal is already aborted", async () => {
     const env = makeEnv(); const controller = new AbortController(); controller.abort();
     await expect(ensureBundle("translate-enzh", { env, signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" });
+    expect(modelFetches(env)).toEqual([]);
   });
   it("handle.fetch serves cached entries and falls back to the network", async () => {
     const env = makeEnv(); const handle = await ensureBundle("translate-enzh", { env }); const before = env.log.length;
