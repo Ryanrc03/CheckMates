@@ -17,6 +17,9 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     ".superpowers/**",
     ".private/**",
+    "public/models/**",
+    "vendor/**",
+    ".model-assets-cache/**",
   ]),
 ]);
 
