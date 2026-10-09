@@ -11,7 +11,7 @@ export async function createBergamotEngine(handle: BundleHandle, options: { sign
   transport.onmessage = ({ data }) => { const job = pending.get(data?.id); if (!job) return; pending.delete(data.id); if (data.error) job.reject(new Error(data.error.message || "Translation engine error.")); else job.resolve(data.result); };
   transport.onerror = event => failAll(new Error(event.message || "Translation engine could not load."));
   const call = (name: string, args: unknown, transfer: Transferable[] = []) => new Promise<unknown>((resolve, reject) => { if (dead) return reject(dead); const id = ++serial; pending.set(id, { resolve, reject }); transport.postMessage({ id, name, args }, transfer); });
-  const dispose = async () => { if (!dead) { failAll(canceled()); transport.terminate(); } };
+  const dispose = async () => { if (!dead) failAll(canceled()); transport.terminate(); }; // always terminate: onerror marks the engine dead without freeing the worker, and Worker.terminate() is idempotent
   const onAbort = () => { void dispose(); }; options.signal?.addEventListener("abort", onAbort, { once: true });
   try {
     if (options.signal?.aborted) throw canceled();

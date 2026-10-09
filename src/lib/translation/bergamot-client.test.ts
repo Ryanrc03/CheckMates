@@ -26,5 +26,15 @@ describe("createBergamotEngine", () => {
     const controller = new AbortController(); const { transport } = fakeTransport(async m => { if (m.name === "loadModel") { controller.abort(); await new Promise(r => setTimeout(r, 5)); } return {}; });
     await expect(createBergamotEngine(handle, { createTransport: () => transport, signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" }); expect(transport.terminated).toBe(true);
   });
+  it("terminates the worker after a worker-level error during setup", async () => {
+    const fake = fakeTransport(m => { if (m.name !== "initialize") return {}; fake.transport.onerror?.({ message: "importScripts failed" } as ErrorEvent); return new Promise(() => {}); });
+    await expect(createBergamotEngine(handle, { createTransport: () => fake.transport })).rejects.toThrow(/importScripts failed/); expect(fake.transport.terminated).toBe(true);
+  });
+  it("still terminates on dispose after a worker-level error during translation", async () => {
+    const fake = fakeTransport(m => { if (m.name === "translate" && (m.args.texts as string[])[0] === "boom") { fake.transport.onerror?.({ message: "worker crashed" } as ErrorEvent); return new Promise(() => {}); } return {}; });
+    const engine = await createBergamotEngine(handle, { createTransport: () => fake.transport });
+    await expect(engine.translate(["boom"])).rejects.toThrow(/worker crashed/); expect(fake.transport.terminated).toBe(false);
+    await engine.dispose(); expect(fake.transport.terminated).toBe(true); await expect(engine.translate(["x"])).rejects.toThrow(/worker crashed/);
+  });
   it("exposes the file names used by the prepare script", () => { expect(MODEL_FILES.wasm).toBe("runtime/bergamot-translator-v0.6.0.wasm"); expect(MODEL_FILES.worker).toBe("runtime/translator-worker.js"); });
 });
