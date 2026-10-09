@@ -35,10 +35,26 @@ describe("translation service", () => {
     await new Promise(r => setTimeout(r, 10)); expect(settled).toBe(false);
     await service.setOcrBusy(false); const outcome = await pending; expect(outcome.items[0].translatedText).toBe("模:Mangosteen");
   });
+  it("serves a repeated phrase from the cache without calling the model again", async () => {
+    const { service, translateCalls } = deps();
+    const first = await service.translateDishes([{ id: "b", name: "Durian" }], opts()); const second = await service.translateDishes([{ id: "c", name: "durian " }], opts());
+    expect(translateCalls).toEqual([["Durian"]]); expect(first.items[0]).toMatchObject({ translatedText: "模:Durian", provider: "model" }); expect(second.items[0]).toMatchObject({ sourceText: "durian ", translatedText: "模:Durian", provider: "model" });
+  });
+  it("cancelTranslations rejects a request waiting behind OCR right away, before any engine work", async () => {
+    const ensure = vi.fn(async () => handle); const { service, translateCalls } = deps({ ensure }); await service.setOcrBusy(true);
+    const promise = service.translateDishes([{ id: "b", name: "Durian" }], opts()); await new Promise(r => setTimeout(r, 1)); await service.cancelTranslations();
+    await expect(promise).rejects.toMatchObject({ name: "AbortError" }); // OCR is still busy here, so the rejection cannot have waited for it
+    expect(ensure).not.toHaveBeenCalled(); expect(translateCalls).toEqual([]); await service.setOcrBusy(false);
+  });
+  it("rejects with AbortError before any engine work when options.signal is already aborted", async () => {
+    const ensure = vi.fn(async () => handle); const { service, translateCalls } = deps({ ensure }); const controller = new AbortController(); controller.abort();
+    await expect(service.translateDishes([{ id: "b", name: "Durian" }], opts({ signal: controller.signal }))).rejects.toMatchObject({ name: "AbortError" });
+    expect(ensure).not.toHaveBeenCalled(); expect(translateCalls).toEqual([]);
+  });
   it("cancelTranslations rejects active and queued requests with AbortError", async () => {
     const { service } = deps({ createEngine: vi.fn(async () => { await new Promise(r => setTimeout(r, 50)); throw new Error("too slow"); }) });
-    const promise = service.translateDishes([{ id: "b", name: "Durian" }], opts()); await new Promise(r => setTimeout(r, 1)); await service.cancelTranslations();
-    await expect(promise).rejects.toMatchObject({ name: "AbortError" });
+    const active = service.translateDishes([{ id: "b", name: "Durian" }], opts()); const queued = service.translateDishes([{ id: "c", name: "Mangosteen" }], opts()); await new Promise(r => setTimeout(r, 1)); await service.cancelTranslations();
+    await Promise.all([expect(active).rejects.toMatchObject({ name: "AbortError" }), expect(queued).rejects.toMatchObject({ name: "AbortError" })]);
   });
   it("drops a failed engine so the next request rebuilds it instead of reusing the dead one", async () => {
     let calls = 0; const createEngine = vi.fn(async () => ({ translate: async (texts: string[]) => { if (++calls === 1) throw new Error("worker crashed"); return texts.map(t => `模:${t}`); }, dispose: async () => {} }));
