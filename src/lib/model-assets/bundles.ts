@@ -8,7 +8,8 @@ const abortError = () => new DOMException("Download canceled.", "AbortError");
 async function sha256Hex(buffer: ArrayBuffer): Promise<string> { const digest = await crypto.subtle.digest("SHA-256", buffer); return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join(""); }
 async function bundleCacheNames(env: AssetEnv, id: ModelBundleId): Promise<string[]> { return (await env.caches.keys()).filter(name => name.startsWith(`${CACHE_PREFIX}${id}-v`)); }
 async function cachedFiles(env: AssetEnv, bundle: ModelBundleManifest): Promise<Set<string>> {
-  const cache = await env.caches.open(cacheNameFor(bundle.id, bundle.version)); const present = new Set<string>();
+  const name = cacheNameFor(bundle.id, bundle.version); const present = new Set<string>(); if (!(await env.caches.has(name))) return present; // caches.open() would create an empty bucket, which caches.keys()-based status/purge/removal would then mistake for an install
+  const cache = await env.caches.open(name);
   for (const file of bundle.files) if (file.cache === "cache-api" && await cache.match(bundleUrl(env.origin, bundle, file.path))) present.add(file.path);
   return present;
 }

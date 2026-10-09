@@ -65,4 +65,10 @@ describe("removeBundle / purgeExpiredBundles", () => {
     expect(purged.sort()).toEqual(["ocr-precise", "translate-enzh"]); expect(await env.fakeCaches.keys()).toEqual([]);
     await ensureBundle("ocr-precise", { env }); expect(await purgeExpiredBundles({ env })).toEqual([]);
   });
+  it("getBundleStatus never creates a cache bucket, so purge ignores bundles that were never installed", async () => {
+    const env = makeEnv(); expect((await getBundleStatus("translate-enzh", env)).cached).toBe(false);
+    expect(await env.fakeCaches.keys()).toEqual([]); expect(await purgeExpiredBundles({ env })).toEqual([]);
+    await ensureBundle("translate-enzh", { env }); await removeBundle("translate-enzh", env); expect((await getBundleStatus("translate-enzh", env)).cached).toBe(false);
+    expect(await env.fakeCaches.keys()).toEqual([]); // removal must not be undone by the status refresh that follows it
+  });
 });
