@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createTranslationStore } from "./useTranslationStore";
-import type { TranslationService, TranslatedItem } from "@/lib/translation/types";
+import type { TranslateOptions, TranslateOutcome, TranslationService, TranslatedItem } from "@/lib/translation/types";
 function fakeService(overrides: Partial<TranslationService> = {}): TranslationService & { calls: number } {
   const service = { calls: 0,
     getCapabilities: async () => ({ modelAvailable: true, modelCached: false, downloadBytes: 57000000 }),
@@ -34,6 +34,33 @@ describe("translation store", () => {
     const first = store.getState().request([{ id: "a", name: "Durian" }]); await vi.waitFor(() => { if (!release) throw new Error("first request has not reached the service yet"); });
     await store.getState().request([{ id: "a", name: "Mango" }]); release!(); await first;
     expect(store.getState().results.a).toBeUndefined(); expect(store.getState().busy).toBe(false);
+  });
+  it("queues a newer request behind a model download instead of restarting it, and supersedes only the queued run", async () => {
+    const calls: TranslateOptions[] = []; const done: number[] = []; let release: (() => void) | null = null; let chain: Promise<void> = Promise.resolve(); const canceled = () => new DOMException("Translation canceled.", "AbortError");
+    const queued = fakeService({ translateDishes: (items, options) => { const n = calls.push(options); const job = chain.then(async () => { // like the real service: one model job at a time, in arrival order, each checking its signal
+      if (options.signal.aborted) throw canceled();
+      if (n === 1) { options.onProgress?.({ stage: "downloading", loadedBytes: 0, totalBytes: 10 }); await new Promise<void>(r => { release = r; }); options.onProgress?.({ stage: "initializing" }); }
+      options.onProgress?.({ stage: "translating", completedItems: 0, totalItems: 1 }); if (options.signal.aborted) throw canceled();
+      items.forEach(i => options.onItem?.({ id: i.id, sourceText: i.name, translatedText: `模${n}`, provider: "model", revision: "r" })); done.push(n); return { items: [], error: null }; }); chain = job.then(() => undefined, () => undefined); return job; } });
+    const store = createTranslationStore(queued, storage()); store.getState().setEnabled(true);
+    const first = store.getState().allowModelAndRequest([{ id: "a", name: "Durian" }]); await vi.waitFor(() => { if (!release) throw new Error("not downloading yet"); });
+    const second = store.getState().request([{ id: "a", name: "Mango" }]); await vi.waitFor(() => expect(calls).toHaveLength(2));
+    expect(calls.map(c => c.signal.aborted)).toEqual([false, false]);
+    calls[0].onProgress?.({ stage: "downloading", loadedBytes: 5, totalBytes: 10 }); expect(store.getState()).toMatchObject({ busy: true, progress: { stage: "downloading", loadedBytes: 5, totalBytes: 10 } }); // the superseded download keeps reporting
+    const third = store.getState().request([{ id: "a", name: "Papaya" }]); await vi.waitFor(() => expect(calls).toHaveLength(3));
+    expect(calls.map(c => c.signal.aborted)).toEqual([false, true, false]); // the queued run is cheap to drop; the download is not
+    release!(); await Promise.all([first, second, third]);
+    expect(calls[0].signal.aborted).toBe(true); expect(done).toEqual([3]); // once the model is warm the loader bows out and only the newest names are translated
+    expect(store.getState()).toMatchObject({ busy: false, progress: null, pending: {}, results: { a: { sourceText: "Papaya", translatedText: "模3" } } });
+  });
+  it("cancel also stops a download that a newer request queued behind", async () => {
+    const signals: AbortSignal[] = [];
+    const slow = fakeService({ translateDishes: (_items, options) => new Promise<TranslateOutcome>((_, reject) => { if (signals.push(options.signal) === 1) options.onProgress?.({ stage: "downloading", loadedBytes: 0, totalBytes: 10 }); options.signal.addEventListener("abort", () => reject(new DOMException("Translation canceled.", "AbortError")), { once: true }); }) });
+    const store = createTranslationStore(slow, storage()); store.getState().setEnabled(true);
+    const first = store.getState().allowModelAndRequest([{ id: "a", name: "Durian" }]); await vi.waitFor(() => expect(store.getState().progress?.stage).toBe("downloading"));
+    const second = store.getState().request([{ id: "a", name: "Mango" }]); await vi.waitFor(() => expect(signals).toHaveLength(2)); expect(signals[0].aborted).toBe(false);
+    store.getState().cancel(); await Promise.all([first, second]);
+    expect(signals.map(s => s.aborted)).toEqual([true, true]); expect(store.getState()).toMatchObject({ busy: false, progress: null, pending: {}, modelAllowed: false, needsDownload: true, error: null });
   });
   it("cancelling withdraws model consent and offers the download again for the items still pending", async () => {
     let release: (() => void) | null = null;

@@ -13,17 +13,19 @@ test("glossary names appear instantly and nothing is downloaded before consent",
 });
 test("the on-device model downloads once, translates unknown names, survives reload, and can be removed", async ({ page }, info) => {
   test.setTimeout(240000);
-  const origin = new URL(info.project.use.baseURL!).origin; const external: string[] = []; let modelRequests = 0;
+  const origin = new URL(info.project.use.baseURL!).origin; const external: string[] = []; const model: string[] = [];
   const isModelData = (url: string) => url.includes("/models/translate-enzh/") && !url.endsWith(".js"); // the worker script and its glue are plain same-origin scripts (manifest cache: http) fetched on every page load; model and wasm files must come from the Cache API
-  page.on("request", req => { if (isModelData(req.url())) modelRequests++; if (/^https?:/.test(req.url()) && !req.url().startsWith(origin)) external.push(req.url()); });
+  page.on("request", req => { if (isModelData(req.url())) model.push(req.url()); if (/^https?:/.test(req.url()) && !req.url().startsWith(origin)) external.push(req.url()); });
+  await page.route("**/models/translate-enzh/**/model.enzh.intgemm.alphas.bin", async route => { await new Promise(r => setTimeout(r, 2000)); await route.continue().catch(() => {}); }); // hold the 44 MB file so the edit below lands while it is still downloading
   await openSampleReceipt(page); await page.getByRole("switch", { name: "Show Chinese names" }).check(); await page.getByLabel("Item 1 name").fill("Grilled Octopus");
   await page.getByRole("button", { name: "Download and translate" }).click();
+  await expect(page.getByText(/^Downloading translation model/)).toBeVisible(); await page.getByLabel("Item 1 name").fill("Grilled Octopus Salad"); // editing while the model downloads queues behind it instead of restarting the transfer
   const label = page.locator(".item-editor").first().locator(".dish-translation"); await expect(label).toHaveText(CJK, { timeout: 180000 }); const first = await label.textContent();
-  expect(external).toEqual([]); expect(modelRequests).toBeGreaterThan(0); const afterFirst = modelRequests;
+  expect(external).toEqual([]); expect(model.length).toBeGreaterThan(0); expect(new Set(model).size).toBe(model.length); const afterFirst = model.length; // every model file fetched exactly once
   await expect.poll(() => page.evaluate(() => caches.keys())).toContain("cm-models-translate-enzh-v2.2-b0.6.0");
   await page.reload(); await expect(page.getByRole("switch", { name: "Show Chinese names" })).toBeChecked(); await expect(page.locator(".item-editor").first().locator(".dish-translation")).toHaveText(first!);
   await page.getByLabel("Item 2 name").fill("Smoked Eel Rice Bowl"); await expect(page.locator(".item-editor").nth(1).locator(".dish-translation")).toHaveText(CJK, { timeout: 60000 });
-  expect(modelRequests).toBe(afterFirst); // cache hit: no further model downloads
+  expect(model.length).toBe(afterFirst); // cache hit: no further model downloads
   await page.getByRole("button", { name: "Back", exact: true }).click(); await page.getByText("Offline data").click();
   await page.getByRole("button", { name: /Remove translation model/ }).click(); await expect.poll(() => page.evaluate(() => caches.keys())).not.toContain("cm-models-translate-enzh-v2.2-b0.6.0");
 });
