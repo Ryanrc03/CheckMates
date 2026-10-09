@@ -34,15 +34,20 @@ function touchRecord(env: AssetEnv, id: ModelBundleId, version: string): void {
 }
 export async function ensureBundle(id: ModelBundleId, { signal, onProgress, env = browserEnv() }: { signal?: AbortSignal; onProgress?: (progress: BundleProgress) => void; env?: AssetEnv } = {}): Promise<BundleHandle> {
   const bundle = (await loadManifest(env.fetch, env.origin)).bundles[id]; const name = cacheNameFor(id, bundle.version); const cache = await env.caches.open(name);
+  for (const stale of await bundleCacheNames(env, id)) if (stale !== name) await env.caches.delete(stale); // older versions are never read again once the manifest moved on, so retire them before the download rather than only after it succeeds
   const files = bundle.files.filter(f => f.cache === "cache-api"); const totalBytes = files.reduce((s, f) => s + f.bytes, 0); let loaded = 0;
   onProgress?.({ stage: "checking", loadedBytes: 0, totalBytes });
-  for (const file of files) {
-    const url = bundleUrl(env.origin, bundle, file.path);
-    if (await cache.match(url)) { loaded += file.bytes; onProgress?.({ stage: "downloading", loadedBytes: loaded, totalBytes, file: file.path }); continue; }
-    const base = loaded; const response = await download(env, url, file.bytes, file.sha256, signal, received => onProgress?.({ stage: "downloading", loadedBytes: base + received, totalBytes, file: file.path }));
-    await cache.put(url, response); loaded += file.bytes;
+  try {
+    for (const file of files) {
+      const url = bundleUrl(env.origin, bundle, file.path);
+      if (await cache.match(url)) { loaded += file.bytes; onProgress?.({ stage: "downloading", loadedBytes: loaded, totalBytes, file: file.path }); continue; }
+      const base = loaded; const response = await download(env, url, file.bytes, file.sha256, signal, received => onProgress?.({ stage: "downloading", loadedBytes: base + received, totalBytes, file: file.path }));
+      await cache.put(url, response); loaded += file.bytes;
+    }
+  } catch (error) { // a partial download keeps its stored files for the next call to resume from; its record puts it on the same 14-day clock as an install (purgeExpiredBundles reads a record-less bucket as junk), while an empty bucket is removed so nothing looks installed
+    if ((await cache.keys()).length) touchRecord(env, id, bundle.version); else await env.caches.delete(name).catch(() => false);
+    throw error;
   }
-  for (const stale of await bundleCacheNames(env, id)) if (stale !== name) await env.caches.delete(stale);
   touchRecord(env, id, bundle.version); onProgress?.({ stage: "ready", loadedBytes: totalBytes, totalBytes });
   const url = (path: string) => bundleUrl(env.origin, bundle, path);
   return { id, version: bundle.version, cacheName: name, url,
@@ -57,8 +62,8 @@ export async function removeBundle(id: ModelBundleId, env: AssetEnv = browserEnv
 export async function purgeExpiredBundles({ env = browserEnv(), maxAgeDays = 14 }: { env?: AssetEnv; maxAgeDays?: number } = {}): Promise<ModelBundleId[]> {
   const manifest = await loadManifest(env.fetch, env.origin); const records = readRecords(env.storage); const purged: ModelBundleId[] = []; const limit = maxAgeDays * 24 * 60 * 60 * 1000;
   for (const id of Object.keys(manifest.bundles) as ModelBundleId[]) {
-    const record = records.bundles[id]; const names = await bundleCacheNames(env, id); if (!names.length && !record) continue;
-    const expired = !record || record.version !== manifest.bundles[id].version || env.now() - record.lastUsedAt > limit;
+    const record = records.bundles[id]; const names = await bundleCacheNames(env, id); if (!names.length && !record) continue; const version = manifest.bundles[id].version;
+    const expired = record ? record.version !== version || env.now() - record.lastUsedAt > limit : !names.includes(cacheNameFor(id, version)); // a record-less bucket at the current version only lost its record (storage cleared), so it is kept for the next ensureBundle to reuse and re-record
     if (expired) { await removeBundle(id, env); purged.push(id); }
   }
   return purged;
