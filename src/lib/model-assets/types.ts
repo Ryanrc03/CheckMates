@@ -1,0 +1,10 @@
+export type ModelBundleId = "translate-enzh" | "ocr-precise";
+export type ModelAssetFile = { path: string; bytes: number; sha256: string; role: "model" | "runtime"; cache: "cache-api" | "http" };
+export type ModelBundleManifest = { id: ModelBundleId; version: string; license: string; totalBytes: number; downloadBytes: number; extraBytes: number; files: ModelAssetFile[]; sources: { file: string; url: string }[] };
+export type ModelAssetsManifest = { version: 1; generatedAt?: string; bundles: Record<ModelBundleId, ModelBundleManifest> };
+export type BundleRecord = { version: string; installedAt: number; lastUsedAt: number };
+export type BundleStatus = { id: ModelBundleId; version: string; totalBytes: number; downloadBytes: number; cached: boolean; installedAt: number | null; lastUsedAt: number | null };
+export type BundleProgress = { stage: "checking" | "downloading" | "ready"; loadedBytes: number; totalBytes: number; file?: string };
+export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+export type AssetEnv = { caches: CacheStorage; storage: StorageLike; fetch: typeof fetch; origin: string; now: () => number };
+export type BundleHandle = { id: ModelBundleId; version: string; cacheName: string; url: (path: string) => string; bytes: (path: string) => Promise<ArrayBuffer>; fetch: typeof fetch; touch: () => void };
