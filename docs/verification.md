@@ -62,3 +62,19 @@ Environment: Windows 11, Node 24.12.0, Next.js 16.3.6 (Turbopack), Chromium 145 
 | `node scripts/translation-quality.mjs` | PASS (deterministic negation/quantity checks); see [v3-translation-quality.md](validation/v3-translation-quality.md): probe set 47/50 exact (42 glossary, 6 rule, 2 model), hold-out 8/20 exact with 16 model outputs, 0 untranslated |
 
 Limits: all timings and storage behaviour are desktop numbers; the 7-day iOS purge, Website Data listing, memory ceilings and WebAssembly SIMD availability on real phones remain to be measured before any release. Model outputs are machine translations for reference only.
+
+## 2026-10-10 Merge `origin/main` (weighted split, OCR evidence) into `feat/v3-local-translation-precise-ocr` (commit `6aa1f99`, not deployed)
+
+Environment: Windows 11, Node 24, Next.js 16.3.6 (Turbopack), Chromium (Playwright). Desktop verification only.
+
+| Check | Result |
+| --- | --- |
+| `npm run lint` | PASS |
+| `npx tsc --noEmit --incremental false` | PASS |
+| `npm test` | PASS, 196 tests across 30 files (V3 139 + origin's allocation, session v2, OCR financial/normalize/retry/fixture suites) |
+| `npm run build` | PASS |
+| `E2E_PRODUCTION=1 npx playwright test` | PASS, 56 passed + 6 skipped (private photos); re-run of the 6 with `PRIVATE_RECEIPTS_DIR=.private/receipt-upgrade/2026-10-06` PASS, 62/62 total |
+| `node scripts/translation-quality.mjs --base http://127.0.0.1:3200` | PASS; probe 47/50 exact, hold-out 8/20 exact, 0 untranslated (unchanged from the V3 record) |
+| Manual, 375px | Sample bill → Show Chinese names → split step shows the allocation editor (Equal/Ratio/Quantity) with Chinese labels under each item; Reset bill button in the header returns home; Offline data rows list both models |
+
+Notes: the precise (PaddleOCR) engine returns `OcrEvidence` with lines and intentionally skips the Tesseract-only enhanced and financial re-scans. On Windows `prepare:models` rewrites `docs/model-assets-manifest.json` with CRLF-inflated byte counts for the vendored bergamot JS; that diff is a checkout artifact and was not committed.
