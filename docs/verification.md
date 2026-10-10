@@ -63,7 +63,7 @@ Environment: Windows 11, Node 24.12.0, Next.js 16.3.6 (Turbopack), Chromium 145 
 
 Limits: all timings and storage behaviour are desktop numbers; the 7-day iOS purge, Website Data listing, memory ceilings and WebAssembly SIMD availability on real phones remain to be measured before any release. Model outputs are machine translations for reference only.
 
-## 2026-10-10 Merge `origin/main` (weighted split, OCR evidence) into `feat/v3-local-translation-precise-ocr` (commit `6aa1f99`, not deployed)
+## 2026-10-10 Merge `origin/main` (weighted split, OCR evidence) into `feat/v3-local-translation-precise-ocr` (commit `6aa1f99`, deployed)
 
 Environment: Windows 11, Node 24, Next.js 16.3.6 (Turbopack), Chromium (Playwright). Desktop verification only.
 
@@ -78,3 +78,5 @@ Environment: Windows 11, Node 24, Next.js 16.3.6 (Turbopack), Chromium (Playwrig
 | Manual, 375px | Sample bill → Show Chinese names → split step shows the allocation editor (Equal/Ratio/Quantity) with Chinese labels under each item; Reset bill button in the header returns home; Offline data rows list both models |
 
 Notes: the precise (PaddleOCR) engine returns `OcrEvidence` with lines and intentionally skips the Tesseract-only enhanced and financial re-scans. On Windows `prepare:models` rewrites `docs/model-assets-manifest.json` with CRLF-inflated byte counts for the vendored bergamot JS; that diff is a checkout artifact and was not committed.
+
+Deployment: branch pushed to GitHub and published with the Vercel CLI (`vercel deploy --prod`). Production deployment `dpl_6VM7y4bFGqWw8B7jdnMEYb61WwK1` is ready at https://checkmates-pi.vercel.app; the homepage, `/models/manifest.json` and the bergamot translator worker returned HTTP 200, and a live browser session showed the sample bill with Chinese dish names and no console errors. GitHub auto-deploy is still not connected.
