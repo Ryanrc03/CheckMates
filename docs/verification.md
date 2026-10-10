@@ -80,3 +80,5 @@ Environment: Windows 11, Node 24, Next.js 16.3.6 (Turbopack), Chromium (Playwrig
 Notes: the precise (PaddleOCR) engine returns `OcrEvidence` with lines and intentionally skips the Tesseract-only enhanced and financial re-scans. On Windows `prepare:models` rewrites `docs/model-assets-manifest.json` with CRLF-inflated byte counts for the vendored bergamot JS; that diff is a checkout artifact and was not committed.
 
 Deployment: branch pushed to GitHub and published with the Vercel CLI (`vercel deploy --prod`). Production deployment `dpl_6VM7y4bFGqWw8B7jdnMEYb61WwK1` is ready at https://checkmates-pi.vercel.app; the homepage, `/models/manifest.json` and the bergamot translator worker returned HTTP 200, and a live browser session showed the sample bill with Chinese dish names and no console errors. GitHub auto-deploy is still not connected.
+
+PR [#6](https://github.com/Ryanrc03/CheckMates/pull/6) merged into `main` as `d499ff1`; production was redeployed from `main` as `dpl_3RFFTZZfNikunTwKwE6XKnJuZB4P` (ready, same checks green: homepage, model manifest and translator worker HTTP 200, live sample bill with Chinese names, Reset bill, no console errors).
