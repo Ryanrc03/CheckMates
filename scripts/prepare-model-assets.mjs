@@ -18,11 +18,13 @@ const BUNDLES = [
     { path: "runtime/translator-worker.js", role: "runtime", cache: "http", from: "vendor/bergamot/translator-worker.js" },
     { path: "LICENSE.txt", role: "runtime", cache: "http", from: "vendor/bergamot/LICENSE" },
   ] },
-  { id: "ocr-precise", version: "ppocrv5m-ort1.24.3", license: "Apache-2.0 (PaddleOCR models, @paddleocr/paddleocr-js); MIT (onnxruntime-web)", extraBytes: 11500000, files: [
+  { id: "ocr-precise", version: "ppocrv5m-ort1.24.3-wasm", license: "Apache-2.0 (PaddleOCR models, @paddleocr/paddleocr-js); MIT (onnxruntime-web)", extraBytes: 11500000, files: [
     { path: "PP-OCRv5_mobile_det_onnx_infer.tar", role: "model", cache: "cache-api", bytes: 4843520, sha256: "781056046c9ed77a15c94681605db6a0f62317c2e9cce6931c71da2478d4bc30", url: PADDLE + "PP-OCRv5_mobile_det_onnx_infer.tar" },
     { path: "PP-OCRv5_mobile_rec_onnx_infer.tar", role: "model", cache: "cache-api", bytes: 16701440, sha256: "f7e792bc836f36e7ef895ad47c426d75b0b75b1650caa6d63fe9418441ffba8c", url: PADDLE + "PP-OCRv5_mobile_rec_onnx_infer.tar" },
-    { path: "runtime/ort/ort-wasm-simd-threaded.jsep.wasm", role: "runtime", cache: "http", package: "onnxruntime-web", version: "1.24.3", file: "dist/ort-wasm-simd-threaded.jsep.wasm" },
-    { path: "runtime/ort/ort-wasm-simd-threaded.jsep.mjs", role: "runtime", cache: "http", package: "onnxruntime-web", version: "1.24.3", file: "dist/ort-wasm-simd-threaded.jsep.mjs" },
+    // wasm-only build: the "jsep" (WebGPU) build is twice the size and makes JavaScriptCore grow past 3 GB once sessions exist (tab killed on iOS).
+    // With a string wasmPaths ORT imports the Emscripten glue (.mjs) from there too, so ship both files.
+    { path: "runtime/ort/ort-wasm-simd-threaded.wasm", role: "runtime", cache: "http", package: "onnxruntime-web", version: "1.24.3", file: "dist/ort-wasm-simd-threaded.wasm" },
+    { path: "runtime/ort/ort-wasm-simd-threaded.mjs", role: "runtime", cache: "http", package: "onnxruntime-web", version: "1.24.3", file: "dist/ort-wasm-simd-threaded.mjs" },
     // Neither npm tarball ships license text (onnxruntime-web's README only links upstream; paddleocr-js ships README + dist only), so a notice is generated from each package.json.
     { path: "runtime/ort/NOTICE.txt", role: "runtime", cache: "http", package: "onnxruntime-web", version: "1.24.3", notice: true },
     { path: "runtime/paddleocr-js/NOTICE.txt", role: "runtime", cache: "http", package: "@paddleocr/paddleocr-js", version: "0.4.2", notice: true },

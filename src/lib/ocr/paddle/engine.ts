@@ -8,7 +8,14 @@ type Logger = (message: { status: string; progress?: number }) => void;
 type PaddleCall = PaddleRequest extends infer R ? R extends PaddleRequest ? Omit<R, "id"> : never : never; // distributive: a plain Omit over the union would drop payload
 const canceled = () => new DOMException("Recognition canceled", "AbortError");
 const hint = (message: string) => `Precise recognition failed: ${message}. Try the standard engine or enter items manually.`;
-export function createPaddleWorker(handle: BundleHandle, logger: Logger, createTransport: () => PaddleTransport = () => new Worker(new URL("./paddle.worker.ts", import.meta.url), { type: "module" })): OcrWorker {
+/** Workers without OffscreenCanvas (WebKit before iOS 16.4) cannot draw a Blob, so decode it here and ship ImageData instead. */
+export async function prepareImage(image: Blob): Promise<Blob | ImageData> {
+  if (typeof OffscreenCanvas !== "undefined" || typeof document === "undefined" || typeof createImageBitmap === "undefined") return image;
+  const bitmap = await createImageBitmap(image); const canvas = document.createElement("canvas"); canvas.width = bitmap.width; canvas.height = bitmap.height;
+  const context = canvas.getContext("2d", { willReadFrequently: true }); if (!context) { bitmap.close(); return image; }
+  context.drawImage(bitmap, 0, 0); bitmap.close(); return context.getImageData(0, 0, canvas.width, canvas.height);
+}
+export function createPaddleWorker(handle: BundleHandle, logger: Logger, createTransport: () => PaddleTransport = () => new Worker(new URL("./paddle.worker.ts", import.meta.url), { type: "module" }), prepare: (image: Blob) => Promise<Blob | ImageData> = prepareImage): OcrWorker {
   let transport: PaddleTransport | null = null; let serial = 0; let dead: Error | null = null; let ready: Promise<void> | null = null;
   const pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
   const failAll = (error: Error) => { dead = error; for (const job of pending.values()) job.reject(error); pending.clear(); };
@@ -20,8 +27,8 @@ export function createPaddleWorker(handle: BundleHandle, logger: Logger, createT
   const initialize = () => ready ??= (async () => { logger({ status: "Starting precise recognition" }); await call({ type: "init", payload: { cacheName: handle.cacheName, detUrl: handle.url(PADDLE_MODELS.detFile), recUrl: handle.url(PADDLE_MODELS.recFile), wasmPaths: handle.url(PADDLE_MODELS.ortDir) } }); handle.touch(); })();
   return {
     async recognize(image) {
-      await initialize(); logger({ status: "Recognizing (precise)" });
-      const result = await call({ type: "predict", payload: image }) as PaddlePredictResult; const rows = spatialRows(result.items);
+      await initialize(); const payload = await prepare(image); logger({ status: "Recognizing (precise)" });
+      const result = await call({ type: "predict", payload }) as PaddlePredictResult; const rows = spatialRows(result.items);
       return { data: { text: rows.text, confidence: Math.round(rows.meanScore * 100), lines: rows.lines.map(l => ({ text: l.text, confidence: Math.round(l.confidence * 100), bbox: l.bbox, words: [] })) } };
     },
     async terminate() { if (!dead) failAll(canceled()); transport?.terminate(); transport = null; }, // always terminate: onerror marks the adapter dead without freeing the worker

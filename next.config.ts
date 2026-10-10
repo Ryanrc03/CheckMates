@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
     ];
   },
   turbopack: {
+    // The SDK imports the default onnxruntime-web entry, whose WebGPU-capable ("jsep", 25 MB) wasm makes JavaScriptCore grow past 3 GB after creating
+    // the OCR sessions and gets the tab killed on iOS. We only ever run the wasm backend, so resolve it to the wasm-only entry (12 MB, flat memory).
+    resolveAlias: { "onnxruntime-web": "onnxruntime-web/wasm" },
     ignoreIssue: [
       // OpenCV.js (Emscripten) only touches fs/path/crypto under ENVIRONMENT_IS_NODE, never in the browser worker.
       { path: /node_modules\/@techstark\/opencv-js\//, title: /Module not found/ },

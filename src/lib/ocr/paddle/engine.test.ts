@@ -16,6 +16,13 @@ describe("createPaddleWorker", () => {
     expect(data.text).toBe("Burger 14.95\nTotal 26.41"); expect(data.confidence).toBeGreaterThan(90); expect(data.lines).toHaveLength(2); expect(data.lines?.[0]).toMatchObject({ text: "Burger 14.95", words: [] }); expect(data.lines?.[0].confidence).toBeGreaterThan(90); expect(stages).toContain("Starting precise recognition"); expect(stages).toContain("Recognizing (precise)");
     await worker.terminate(); expect(t.terminated).toBe(true); await expect(worker.recognize(new Blob(["x"]))).rejects.toMatchObject({ name: "AbortError" });
   });
+  it("sends pre-decoded ImageData instead of the Blob when the page cannot rasterize in a worker", async () => {
+    const { t, sent } = fakeTransport(m => m.type === "init" ? { backend: "wasm" } : m.type === "predict" ? { items: diner, metrics: { detMs: 1, recMs: 1, totalMs: 2, detectedBoxes: 4, recognizedCount: 4 } } : true);
+    const decoded = { data: new Uint8ClampedArray(4), width: 1, height: 1 } as unknown as ImageData; const seen: Blob[] = [];
+    const worker = createPaddleWorker(handle, () => {}, () => t, async image => { seen.push(image); return decoded; });
+    const blob = new Blob(["png"]); const { data } = await worker.recognize(blob);
+    expect(seen).toEqual([blob]); expect(sent[1]).toMatchObject({ type: "predict", payload: decoded }); expect(data.text).toBe("Burger 14.95\nTotal 26.41");
+  });
   it("surfaces worker errors with a recovery hint", async () => {
     const { t } = fakeTransport(m => { if (m.type === "init") throw new Error("wasm load failed"); return {}; });
     const worker = createPaddleWorker(handle, () => {}, () => t); await expect(worker.recognize(new Blob(["png"]))).rejects.toThrow(/wasm load failed.*standard engine/);
