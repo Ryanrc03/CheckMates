@@ -1,12 +1,13 @@
 type ProgressMessage = { status: string; progress?: number };
 export type OcrWorker = { recognize: (image: Blob) => Promise<{ data: { text: string; confidence: number } }>; terminate: () => Promise<unknown> };
-type Options = { signal: AbortSignal; onProgress: (stage: string, progress: number | null) => void };
-type Factory = (logger: (message: ProgressMessage) => void) => Promise<OcrWorker>;
+export type OcrEngine = "standard" | "precise";
+type Options = { signal: AbortSignal; onProgress: (stage: string, progress: number | null) => void; engine?: OcrEngine };
+type Factory = (logger: (message: ProgressMessage) => void, signal: AbortSignal) => Promise<OcrWorker>;
 const aborted = () => new DOMException("Recognition canceled. You can select another photo or enter items manually.", "AbortError");
 
-export function createReceiptRecognizer(factory: Factory) {
+export function createReceiptRecognizer(factories: Record<OcrEngine, Factory>) {
   let cancelActive: (() => void) | null = null;
-  return async (image: Blob, { signal, onProgress }: Options): Promise<{ text: string; confidence: number }> => {
+  return async (image: Blob, { signal, onProgress, engine = "standard" }: Options): Promise<{ text: string; confidence: number }> => {
     cancelActive?.();
     if (signal.aborted) throw aborted();
     let ended = false; let worker: OcrWorker | null = null; let terminated = false;
@@ -17,8 +18,8 @@ export function createReceiptRecognizer(factory: Factory) {
     cancelActive = cancel; signal.addEventListener("abort", cancel, { once: true });
     const timer = setTimeout(() => { ended = true; release(); rejectStop(new Error("Recognition exceeded 120 seconds. Try a smaller, clearer photo or enter items manually.")); }, 120000);
     const work = (async () => {
-      onProgress("Loading recognition resources", null);
-      worker = await factory(message => { if (!ended) onProgress(message.status, typeof message.progress === "number" && Number.isFinite(message.progress) ? Math.max(0, Math.min(1, message.progress)) : null); });
+      onProgress(engine === "precise" ? "Preparing precise recognition" : "Loading recognition resources", null);
+      worker = await factories[engine](message => { if (!ended) onProgress(message.status, typeof message.progress === "number" && Number.isFinite(message.progress) ? Math.max(0, Math.min(1, message.progress)) : null); }, signal);
       if (ended) { release(); throw aborted(); }
       const { data } = await worker.recognize(image);
       if (ended) throw aborted();
@@ -29,7 +30,7 @@ export function createReceiptRecognizer(factory: Factory) {
     finally { ended = true; clearTimeout(timer); signal.removeEventListener("abort", cancel); release(); if (cancelActive === cancel) cancelActive = null; }
   };
 }
-export const recognizeReceipt = createReceiptRecognizer(async logger => {
-  const { createBrowserWorker } = await import("./worker");
-  return createBrowserWorker(logger);
+export const recognizeReceipt = createReceiptRecognizer({
+  standard: async logger => { const { createBrowserWorker } = await import("./worker"); return createBrowserWorker(logger); },
+  precise: async (logger, signal) => { const { createPreciseWorker } = await import("./paddle/engine"); return createPreciseWorker(logger, signal); },
 });
