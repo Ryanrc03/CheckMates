@@ -1,4 +1,5 @@
 import type { OcrWorker } from "./client";
+import { normalizeOcrLines } from "./normalizeLines";
 type Progress = { status: string; progress?: number };
 type Transport = { postMessage: (message: unknown) => void; terminate: () => void; onmessage: ((event: MessageEvent) => void) | null; onerror: ((event: ErrorEvent) => void) | null };
 
@@ -10,6 +11,7 @@ type Transport = { postMessage: (message: unknown) => void; terminate: () => voi
  */
 export function createBrowserWorker(logger: (message: Progress) => void, transport: Transport = new Worker("/ocr/worker.min.js"), origin = window.location.origin): OcrWorker {
   let serial = 0; let stopped = false;
+  let initialized: Promise<void> | null = null;
   const jobs = new Map<string, { resolve: (data: unknown) => void; reject: (error: Error) => void }>();
   function failAll(error: Error) { for (const job of jobs.values()) job.reject(error); jobs.clear(); }
   transport.onmessage = ({ data }) => {
@@ -27,13 +29,17 @@ export function createBrowserWorker(logger: (message: Progress) => void, transpo
     return new Promise((resolve, reject) => { jobs.set(jobId, { resolve, reject }); transport.postMessage({ workerId: "bitesplit", jobId, action, payload }); });
   }
   return {
-    async recognize(image) {
-      await send("load", { options: { lstmOnly: true, corePath: `${origin}/ocr`, logging: false } });
-      await send("loadLanguage", { langs: "eng", options: { langPath: `${origin}/ocr`, cachePath: "bitesplit-eng-1.0.0-best-int", cacheMethod: "write", gzip: true, lstmOnly: true } });
-      await send("initialize", { langs: "eng", oem: 1, config: {} });
+    async recognize(image, scan) {
+      initialized ??= (async () => {
+        await send("load", { options: { lstmOnly: true, corePath: `${origin}/ocr`, logging: false } });
+        await send("loadLanguage", { langs: "eng", options: { langPath: `${origin}/ocr`, cachePath: "bitesplit-eng-1.0.0-best-int", cacheMethod: "write", gzip: true, lstmOnly: true } });
+        await send("initialize", { langs: "eng", oem: 1, config: {} });
+      })();
+      await initialized;
       const bytes = new Uint8Array(await image.arrayBuffer());
-      const data = await send("recognize", { image: bytes, options: {}, output: { text: true } }) as { text: string; confidence: number };
-      return { data };
+      const data = await send("recognize", { image: bytes, options: scan?.pageSegMode ? {tessedit_pageseg_mode:String(scan.pageSegMode)} : {}, output: { text: true, blocks: true } }) as { text: string; confidence: number; blocks?:unknown };
+      const lines=normalizeOcrLines(data.blocks);
+      return { data: {text:data.text,confidence:data.confidence,...(lines.length?{lines}:{})} };
     },
     async terminate() { if (!stopped) { stopped = true; transport.terminate(); failAll(new DOMException("Recognition canceled", "AbortError")); transport.onmessage = null; transport.onerror = null; } },
   };

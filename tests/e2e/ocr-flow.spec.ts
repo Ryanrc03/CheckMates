@@ -1,5 +1,4 @@
 import { test, expect, type Page } from "@playwright/test";
-import { readFile } from "node:fs/promises";
 const fixture = (name: string) => `tests/fixtures/receipts/${name}`;
 async function useAdjustedPhoto(page: Page) {
   await expect(page.getByRole("heading", { name: "Adjust your photo" })).toBeVisible();
@@ -31,22 +30,14 @@ for (const [name, firstItem, firstPrice, tax, total] of [["clear-diner", "Burger
     await completeSharedBill(page, total);
   });
 }
-test("Line Thai redacted photo: record extraction, correct when needed, split 78.48", async ({ page }, info) => {
+test("Line Thai redacted photo: recognize exact amounts and split 78.48 without edits", async ({ page }, info) => {
   await page.goto("/"); await page.getByLabel("Upload a receipt", { exact: true }).setInputFiles(fixture("line-thai-cafe-2026-09-05-redacted.png")); await useAdjustedPhoto(page);
   await expect(page.getByRole("heading", { name: "Check the receipt" })).toBeVisible({ timeout: 120000 });
   await page.getByText("Original recognized text", { exact: true }).click();
   const before = await page.locator("main").innerText(); await info.attach("before-correction", { body: before, contentType: "text/plain" });
-  const expected = JSON.parse(await readFile(fixture("line-thai-cafe-2026-09-05.expected.json"), "utf8"));
-  // Corrections are explicit, recorded, and never substituted for OCR assertions.
   const prices = await page.locator('[aria-label^="Price for"]').evaluateAll(nodes => nodes.map(n => (n as HTMLInputElement).value));
-  for (const cents of [1390, 790, 400, 2580, 1290, 800]) expect(prices).toContain((cents / 100).toFixed(2));
-  while (await page.getByRole("button", { name: /^Remove / }).count()) await page.getByRole("button", { name: /^Remove / }).first().click();
-  for (let i = 0; i < expected.items.length; i++) {
-    await page.getByRole("button", { name: "Add item", exact: true }).click(); await page.getByLabel(`Item ${i + 1} name`, { exact: true }).fill(expected.items[i].name);
-    await page.getByLabel(`Price for ${expected.items[i].name}`, { exact: true }).fill((expected.items[i].priceCents / 100).toFixed(2));
-  }
-  await page.getByLabel("Tax", { exact: true }).fill("5.98"); await page.getByLabel("Tip already on receipt").fill("0.00");
-  const reason = page.getByLabel("Reason for the difference"); if (await reason.count()) await reason.fill("Manually checked redacted photo: six lines 72.50 plus tax 5.98 equals 78.48; no tip.");
+  expect(prices).toEqual(["13.90","7.90","4.00","25.80","12.90","8.00"]);
+  await expect(page.getByLabel("Tax", {exact:true})).toHaveValue("5.98");
   await completeSharedBill(page, "$78.48"); await expect(page.getByTestId("share-A")).toContainText("$39.24"); await expect(page.getByTestId("share-B")).toContainText("$39.24");
   await info.attach("after-correction", { body: await page.locator("main").innerText(), contentType: "text/plain" });
 });

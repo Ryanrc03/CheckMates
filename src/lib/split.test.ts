@@ -4,8 +4,8 @@ import type { Bill } from "@/types/bill";
 
 const bill: Bill = {
   items: [
-    { id: "a", name: "Burger", priceCents: 1001, personIds: ["a", "b"] },
-    { id: "b", name: "Fries", priceCents: 500, personIds: ["b"] },
+    { id: "a", name: "Burger", priceCents: 1001, allocation: {mode:"equal",personIds:["a", "b"]} },
+    { id: "b", name: "Fries", priceCents: 500, allocation: {mode:"equal",personIds:["b"]} },
   ],
   people: [{ id: "a", name: "A" }, { id: "b", name: "B" }],
   taxCents: 151,
@@ -15,7 +15,7 @@ const bill: Bill = {
 describe("splitBill", () => {
   it("uses participant order, never click order, for odd cents", () => {
     const reversed = structuredClone(bill);
-    reversed.items[0].personIds.reverse();
+    if (reversed.items[0].allocation.mode === "equal") reversed.items[0].allocation.personIds.reverse();
     const before = structuredClone(reversed);
     expect(splitBill(reversed)).toEqual(splitBill(bill));
     expect(reversed).toEqual(before);
@@ -35,7 +35,7 @@ describe("splitBill", () => {
     }
     expect(() => splitBill({ ...bill, people: [] })).toThrow();
     expect(() => splitBill({ ...bill, items: [] })).toThrow();
-    expect(() => splitBill({ ...bill, items: [{ ...bill.items[0], personIds: ["a", "a"] }] })).toThrow();
+    expect(() => splitBill({ ...bill, items: [{ ...bill.items[0], allocation: {mode:"equal",personIds:["a", "a"]} }] })).toThrow();
     expect(() => splitBill({ ...bill, items: bill.items.map(i => ({ ...i, priceCents: Number.MAX_SAFE_INTEGER })) })).toThrow();
     expect(() => splitBill({ ...bill, taxCents: Number.MAX_SAFE_INTEGER })).toThrow();
     expect(() => splitBill({ ...bill, items: [{ ...bill.items[0], priceCents: 0 }] })).toThrow();
@@ -43,7 +43,7 @@ describe("splitBill", () => {
 
   it("conserves each amount over fixed multi-person bills", () => {
     for (const prices of [[1, 2, 3], [1001, 500, 99], [0, 7, 9000]]) {
-      const input: Bill = { people: [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "c", name: "C" }], items: prices.map((priceCents, i) => ({ id: String(i), name: "Dish", priceCents, personIds: i === 0 ? ["c", "a"] : ["b", "a", "c"] })), taxCents: 17, tipCents: 43 };
+      const input: Bill = { people: [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "c", name: "C" }], items: prices.map((priceCents, i) => ({ id: String(i), name: "Dish", priceCents, allocation: {mode:"equal",personIds:i === 0 ? ["c", "a"] : ["b", "a", "c"]} })), taxCents: 17, tipCents: 43 };
       const output = splitBill(input);
       expect(output.people.reduce((s, p) => s + p.itemsCents, 0)).toBe(prices.reduce((a, b) => a + b, 0));
       expect(output.people.reduce((s, p) => s + p.taxCents, 0)).toBe(17);
@@ -61,16 +61,16 @@ describe("splitBill", () => {
   });
 
   it("rejects an item with nobody assigned", () => {
-    expect(() => splitBill({ ...bill, items: [{ ...bill.items[0], personIds: [] }] })).toThrow(/assign/i);
+    expect(() => splitBill({ ...bill, items: [{ ...bill.items[0], allocation: {mode:"equal",personIds:[]} }] })).toThrow(/assign/i);
   });
 
   it("rejects unknown people and invalid cents", () => {
-    expect(() => splitBill({ ...bill, items: [{ ...bill.items[0], personIds: ["missing"] }] })).toThrow(/unknown/i);
+    expect(() => splitBill({ ...bill, items: [{ ...bill.items[0], allocation: {mode:"equal",personIds:["missing"]} }] })).toThrow(/unknown/i);
     expect(() => splitBill({ ...bill, taxCents: 0.5 })).toThrow(/integer/i);
   });
 
   it("handles a zero subtotal with zero extras", () => {
-    const result = splitBill({ ...bill, items: [{ ...bill.items[0], priceCents: 0, personIds: ["a"] }], taxCents: 0, tipCents: 0 });
+    const result = splitBill({ ...bill, items: [{ ...bill.items[0], priceCents: 0, allocation: {mode:"equal",personIds:["a"]} }], taxCents: 0, tipCents: 0 });
     expect(result.totalCents).toBe(0);
   });
 });

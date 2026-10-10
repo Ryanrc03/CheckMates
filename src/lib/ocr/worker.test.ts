@@ -1,5 +1,16 @@
 import { expect, it } from "vitest";
 import { createBrowserWorker } from "./worker";
+it("requests layout evidence and initializes only once across scans", async () => {
+  const actions:string[]=[];const outputs:unknown[]=[];
+  const bbox={x0:0,y0:0,x1:100,y1:20};
+  const transport={onmessage:null as ((e:MessageEvent)=>void)|null,onerror:null as ((e:ErrorEvent)=>void)|null,
+    postMessage(message:unknown){const p=message as {action:string;jobId:string;payload:{output?:unknown}};actions.push(p.action);if(p.action==="recognize")outputs.push(p.payload.output);queueMicrotask(()=>transport.onmessage?.({data:{jobId:p.jobId,status:"resolve",data:p.action==="recognize"?{text:"Soup $8.00",confidence:90,blocks:[{paragraphs:[{lines:[{text:"Soup $8.00",confidence:90,bbox,words:[]}]}]}]}:{}}} as MessageEvent));},terminate(){}};
+  const w=createBrowserWorker(()=>{},transport,"http://localhost");
+  expect((await w.recognize(new Blob())).data.lines?.[0].text).toBe("Soup $8.00");
+  await w.recognize(new Blob(),{pageSegMode:4});
+  expect(actions.filter(a=>a==="initialize")).toHaveLength(1);
+  expect(outputs).toEqual([{text:true,blocks:true},{text:true,blocks:true}]);await w.terminate();
+});
 it("rejects model initialization failures and terminates the owned worker", async () => {
   let stopped = false;
   const transport = { onmessage: null as ((e: MessageEvent) => void) | null, onerror: null as ((e: ErrorEvent) => void) | null,

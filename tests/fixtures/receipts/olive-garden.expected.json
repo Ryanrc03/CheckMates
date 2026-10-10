@@ -1,0 +1,65 @@
+{
+  "source": "User supplied photograph, manually annotated independently of OCR",
+  "imageKind": "private-photograph",
+  "items": [
+    {
+      "sourceRowId": "olive-garden-1",
+      "priceCents": 1399,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "olive-garden-2",
+      "priceCents": 679,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "olive-garden-3",
+      "priceCents": 299,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "olive-garden-4",
+      "priceCents": 4498,
+      "quantity": 2
+    },
+    {
+      "sourceRowId": "olive-garden-5",
+      "priceCents": 2249,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "olive-garden-6",
+      "priceCents": 8996,
+      "quantity": 4
+    },
+    {
+      "sourceRowId": "olive-garden-7",
+      "priceCents": 775,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "olive-garden-8",
+      "priceCents": 1779,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "olive-garden-9",
+      "priceCents": 775,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "olive-garden-10",
+      "priceCents": 1229,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "olive-garden-11",
+      "priceCents": 2049,
+      "quantity": 1
+    }
+  ],
+  "subtotalCents": 24727,
+  "taxCents": 1466,
+  "totalCents": 26193,
+  "discountsAlreadyIncluded": []
+}

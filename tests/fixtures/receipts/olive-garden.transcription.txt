@@ -1,0 +1,29 @@
+Olive Garden
+1305 West Broadway
+Dine In
+10 No Beverage
+1 CYO Pasta 13.99
+    Bucatini
+    Creamy Mushroom
+1 Add Shrimp 6.79
+1 * Salad
+1 Table Games 2.99
+2 Seafood Alfredo 44.98
+2 * Salad
+1 Tour of Italy 22.49
+1 * Zuppa Toscana
+4 Tour of Italy 89.96
+4 * Salad
+1 Strawberry Mango Margarita 7.75
+1 Eggplant Parm 17.79
+1 * Salad
+1 OG's Old Fashioned 7.75
+1 Calamari 12.29
+1 Chicken Parmigiana 20.49
+1 * Salad
+Duplicate Receipt
+Stored Order
+Subtotal 247.27
+Sales Tax 14.66
+Please pay this amount
+Total 261.93

@@ -22,7 +22,7 @@ export function createPaddleWorker(handle: BundleHandle, logger: Logger, createT
     async recognize(image) {
       await initialize(); logger({ status: "Recognizing (precise)" });
       const result = await call({ type: "predict", payload: image }) as PaddlePredictResult; const rows = spatialRows(result.items);
-      return { data: { text: rows.text, confidence: Math.round(rows.meanScore * 100) } };
+      return { data: { text: rows.text, confidence: Math.round(rows.meanScore * 100), lines: rows.lines.map(l => ({ text: l.text, confidence: Math.round(l.confidence * 100), bbox: l.bbox, words: [] })) } };
     },
     async terminate() { if (!dead) failAll(canceled()); transport?.terminate(); transport = null; }, // always terminate: onerror marks the adapter dead without freeing the worker
   };

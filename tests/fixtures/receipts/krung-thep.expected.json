@@ -1,0 +1,40 @@
+{
+  "source": "User supplied photograph, manually annotated independently of OCR",
+  "imageKind": "private-photograph",
+  "items": [
+    {
+      "sourceRowId": "krung-thep-1",
+      "priceCents": 600,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "krung-thep-2",
+      "priceCents": 1200,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "krung-thep-3",
+      "priceCents": 1400,
+      "quantity": 1
+    },
+    {
+      "sourceRowId": "krung-thep-4",
+      "priceCents": 2800,
+      "quantity": 2
+    },
+    {
+      "sourceRowId": "krung-thep-5",
+      "priceCents": 2400,
+      "quantity": 3
+    },
+    {
+      "sourceRowId": "krung-thep-6",
+      "priceCents": 350,
+      "quantity": 1
+    }
+  ],
+  "subtotalCents": 8750,
+  "taxCents": 525,
+  "totalCents": 9275,
+  "discountsAlreadyIncluded": []
+}

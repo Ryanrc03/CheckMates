@@ -13,7 +13,7 @@ describe("createPaddleWorker", () => {
     const stages: string[] = []; const worker = createPaddleWorker(handle, message => stages.push(message.status), () => t);
     const { data } = await worker.recognize(new Blob(["png"]));
     expect(sent[0]).toMatchObject({ type: "init", payload: { cacheName: "cm-models-ocr-precise-vv", detUrl: "https://x.test/models/ocr-precise/v/PP-OCRv5_mobile_det_onnx_infer.tar", wasmPaths: "https://x.test/models/ocr-precise/v/runtime/ort/" } });
-    expect(data.text).toBe("Burger 14.95\nTotal 26.41"); expect(data.confidence).toBeGreaterThan(90); expect(stages).toContain("Starting precise recognition"); expect(stages).toContain("Recognizing (precise)");
+    expect(data.text).toBe("Burger 14.95\nTotal 26.41"); expect(data.confidence).toBeGreaterThan(90); expect(data.lines).toHaveLength(2); expect(data.lines?.[0]).toMatchObject({ text: "Burger 14.95", words: [] }); expect(data.lines?.[0].confidence).toBeGreaterThan(90); expect(stages).toContain("Starting precise recognition"); expect(stages).toContain("Recognizing (precise)");
     await worker.terminate(); expect(t.terminated).toBe(true); await expect(worker.recognize(new Blob(["x"]))).rejects.toMatchObject({ name: "AbortError" });
   });
   it("surfaces worker errors with a recovery hint", async () => {

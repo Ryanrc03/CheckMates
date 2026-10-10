@@ -1,5 +1,7 @@
 # CheckMates V2.2 Explainable Results Implementation Plan
 
+> 2026-09-29：用户重新提出分账拆解与可视化需求。后续以[新的结果解释计划](2026-09-29-checkmates-split-explanation.md)为准；下文为历史范围，不直接执行。
+
 > 2026-09-28：暂缓执行。本轮仅处理动态图片校正和菜品识别，见[新版 V2 计划](../specs/2026-09-28-checkmates-v2-image-first-design.md)。本文件保留为后续待办，不代表当前开发范围。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
