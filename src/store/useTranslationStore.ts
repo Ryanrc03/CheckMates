@@ -6,7 +6,7 @@ import type { TranslatedItem, TranslationItem, TranslationProgress, TranslationS
 export const TRANSLATION_ENABLED_KEY = "bitesplit-translation-enabled";
 export type TranslationStoreState = {
   enabled: boolean; results: Record<string, TranslatedItem>; pending: Record<string, true>; progress: TranslationProgress | null; busy: boolean; error: string | null; needsDownload: boolean; downloadBytes: number; modelAllowed: boolean; modelUnavailableReason: string | null;
-  setEnabled: (enabled: boolean) => void; request: (items: TranslationItem[]) => Promise<void>; allowModelAndRequest: (items: TranslationItem[]) => Promise<void>; cancel: () => void; clearForBill: () => void; invalidate: (id: string) => void;
+  setEnabled: (enabled: boolean) => void; request: (items: TranslationItem[]) => Promise<void>; allowModelAndRequest: (items: TranslationItem[]) => Promise<void>; cancel: () => void; clearForBill: () => void; forgetModel: () => void; invalidate: (id: string) => void;
 };
 export function createTranslationStore(service: TranslationService, storage: StorageLike | null) {
   let generation = 0; let controller: AbortController | null = null; let loader: AbortController | null = null; // loader: the run downloading or starting the model; a newer request queues behind it in the service (one model job at a time) instead of aborting a 57 MB transfer that resumes only per completed file
@@ -45,9 +45,10 @@ export function createTranslationStore(service: TranslationService, storage: Sto
       allowModelAndRequest: async items => { set({ modelAllowed: true, needsDownload: false }); await run(items, true); },
       cancel: () => { generation++; abortAll(); void service.cancelTranslations(); const unresolved = Object.keys(get().pending).length > 0; set({ pending: {}, progress: null, busy: false, modelAllowed: false, needsDownload: unresolved }); }, // consent was for this download; the next one is asked for again
       clearForBill: () => { generation++; abortAll(); set({ results: {}, pending: {}, progress: null, busy: false, error: null, needsDownload: false }); },
+      forgetModel: () => { get().cancel(); get().clearForBill(); service.clearCache(); }, // the model was removed: withdraw consent and drop the warm engine (cancel) before emptying the phrase cache, so no in-flight job can write old entries back
       invalidate: id => set(state => { const results = { ...state.results }; delete results[id]; return { results }; }),
     };
   });
 }
-const serverService: TranslationService = { getCapabilities: async () => ({ modelAvailable: false, modelCached: false, downloadBytes: 0 }), translateDishes: async () => ({ items: [], error: null }), setOcrBusy: async () => {}, cancelTranslations: async () => {}, dispose: async () => {} };
+const serverService: TranslationService = { getCapabilities: async () => ({ modelAvailable: false, modelCached: false, downloadBytes: 0 }), translateDishes: async () => ({ items: [], error: null }), setOcrBusy: async () => {}, cancelTranslations: async () => {}, clearCache: () => {}, dispose: async () => {} };
 export const useTranslationStore = createTranslationStore(typeof window === "undefined" ? serverService : getTranslationService(), typeof window === "undefined" ? null : window.localStorage);

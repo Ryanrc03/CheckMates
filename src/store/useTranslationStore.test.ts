@@ -5,7 +5,7 @@ function fakeService(overrides: Partial<TranslationService> = {}): TranslationSe
   const service = { calls: 0,
     getCapabilities: async () => ({ modelAvailable: true, modelCached: false, downloadBytes: 57000000 }),
     translateDishes: async (items, options) => { service.calls++; const out: TranslatedItem[] = items.filter(i => i.name === "Milk Tea").map(i => ({ id: i.id, sourceText: i.name, translatedText: "奶茶", provider: "glossary" as const, revision: "r" })); out.forEach(o => options.onItem?.(o)); if (options.allowModel) { const model = items.filter(i => i.name !== "Milk Tea").map(i => ({ id: i.id, sourceText: i.name, translatedText: "模", provider: "model" as const, revision: "r" })); model.forEach(o => options.onItem?.(o)); return { items: [...out, ...model], error: null }; } return { items: out, error: null }; },
-    setOcrBusy: async () => {}, cancelTranslations: async () => {}, dispose: async () => {}, ...overrides } as TranslationService & { calls: number };
+    setOcrBusy: async () => {}, cancelTranslations: async () => {}, clearCache: () => {}, dispose: async () => {}, ...overrides } as TranslationService & { calls: number };
   return service;
 }
 const storage = () => { const m = new Map<string, string>(); return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) }; };
@@ -70,6 +70,14 @@ describe("translation store", () => {
     expect(store.getState().busy).toBe(true); expect(store.getState().progress?.stage).toBe("downloading"); expect(store.getState().pending.a).toBe(true);
     store.getState().cancel(); await run;
     expect(store.getState()).toMatchObject({ busy: false, progress: null, pending: {}, modelAllowed: false, needsDownload: true, error: null });
+  });
+  it("forgetModel withdraws consent, disposes the engine, empties the phrase cache, and asks for the download again", async () => {
+    let cancelled = 0; let cleared = 0; const service = fakeService({ cancelTranslations: async () => { cancelled++; }, clearCache: () => { cleared++; } });
+    const store = createTranslationStore(service, storage()); store.getState().setEnabled(true);
+    await store.getState().allowModelAndRequest([{ id: "b", name: "Durian" }]); expect(store.getState()).toMatchObject({ modelAllowed: true, results: { b: { translatedText: "模" } } });
+    store.getState().forgetModel(); expect(cancelled).toBe(1); expect(cleared).toBe(1);
+    expect(store.getState()).toMatchObject({ modelAllowed: false, results: {}, pending: {}, busy: false, progress: null, error: null, needsDownload: false });
+    await store.getState().request([{ id: "b", name: "Durian" }]); expect(store.getState().results.b).toBeUndefined(); expect(store.getState().needsDownload).toBe(true); // the removed model is neither used silently nor re-downloaded without consent
   });
   it("does nothing while disabled and clears for a new bill", async () => {
     const service = fakeService(); const store = createTranslationStore(service, storage()); await store.getState().request([{ id: "a", name: "Milk Tea" }]); expect(service.calls).toBe(0);

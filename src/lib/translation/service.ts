@@ -82,6 +82,7 @@ export function createTranslationService(deps: TranslationServiceDeps = {}): Tra
     },
     setOcrBusy: setBusy,
     async cancelTranslations() { abortAll(); await disposeEngine(); },
+    clearCache: () => cache.clear(), // the service owns the cache instance: clearing another instance would leave this one's in-memory copy to re-persist on its next save
     dispose: disposeEngine,
   };
 }

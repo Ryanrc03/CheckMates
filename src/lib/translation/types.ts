@@ -11,6 +11,7 @@ export type TranslationService = {
   translateDishes(items: TranslationItem[], options: TranslateOptions): Promise<TranslateOutcome>;
   setOcrBusy(busy: boolean): Promise<void>;
   cancelTranslations(): Promise<void>;
+  clearCache(): void;
   dispose(): Promise<void>;
 };
 export const MAX_ITEMS = 50;

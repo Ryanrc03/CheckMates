@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { getBundleStatus, removeBundle } from "@/lib/model-assets/bundles";
 import type { BundleStatus, ModelBundleId } from "@/lib/model-assets/types";
-import { createTranslationCache } from "@/lib/translation/cache";
 import { useTranslationStore } from "@/store/useTranslationStore";
 const BUNDLES: ModelBundleId[] = ["translate-enzh", "ocr-precise"];
 const LABELS: Record<ModelBundleId, string> = { "translate-enzh": "translation model", "ocr-precise": "precise recognition model" };
@@ -18,6 +17,6 @@ export function OfflineData() {
     <p className="muted">Models are stored in this browser only and removed automatically after 14 days without use. iOS may also remove them after 7 days without use.</p>
     {error && <p className="notice">{error}</p>}
     {rows?.map(row => <div className="offline-row" key={row.id}><span>{LABELS[row.id]} · {row.cached ? `Downloaded · ${mb(row.totalBytes)}` : "Not downloaded"}</span>
-      {row.cached && <Button variant="outline" aria-label={`Remove ${LABELS[row.id]}`} onClick={async () => { await removeBundle(row.id); if (row.id === "translate-enzh") { createTranslationCache(window.localStorage).clear(); useTranslationStore.getState().clearForBill(); } setGeneration(g => g + 1); }}>Remove</Button>}</div>)}
+      {row.cached && <Button variant="outline" aria-label={`Remove ${LABELS[row.id]}`} onClick={async () => { await removeBundle(row.id); if (row.id === "translate-enzh") useTranslationStore.getState().forgetModel(); setGeneration(g => g + 1); }}>Remove</Button>}</div>)}
   </details>;
 }

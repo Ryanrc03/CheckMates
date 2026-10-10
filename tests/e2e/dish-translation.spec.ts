@@ -28,6 +28,10 @@ test("the on-device model downloads once, translates unknown names, survives rel
   expect(model.length).toBe(afterFirst); // cache hit: no further model downloads
   await page.getByRole("button", { name: "Back", exact: true }).click(); await page.getByText("Offline data").click();
   await page.getByRole("button", { name: /Remove translation model/ }).click(); await expect.poll(() => page.evaluate(() => caches.keys())).not.toContain("cm-models-translate-enzh-v2.2-b0.6.0");
+  await expect(page.getByText("translation model · Not downloaded")).toBeVisible();
+  await page.getByRole("button", { name: "Try a sample bill" }).click(); await expect(page.getByRole("heading", { name: "Check the receipt" })).toBeVisible(); await expect(page.locator(".dish-translation")).toHaveCount(3); // same page session, no reload: glossary names still work without the model
+  await page.getByLabel("Item 1 name").fill("Grilled Octopus Salad"); await expect(page.getByRole("button", { name: "Download and translate" })).toBeVisible(); // the removed model is neither still warm nor pre-consented, and its phrase cache no longer answers for it
+  await expect(page.locator(".item-editor").first().locator(".dish-translation")).toHaveText("Not translated"); expect(model.length).toBe(afterFirst); // no answer from the warm engine or the old cache, and nothing re-downloaded without asking
 });
 test("cancelling the download keeps the form usable", async ({ page }) => {
   await page.route("**/models/translate-enzh/**/model.enzh.intgemm.alphas.bin", async route => { await new Promise(r => setTimeout(r, 3000)); await route.continue().catch(() => {}); });

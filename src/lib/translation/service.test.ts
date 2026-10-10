@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createTranslationService } from "./service";
-import { createTranslationCache } from "./cache";
+import { createTranslationCache, TRANSLATION_CACHE_KEY } from "./cache";
 import type { BergamotEngine } from "./bergamot-client";
 import type { BundleHandle, BundleStatus } from "@/lib/model-assets/types";
 const handle = { id: "translate-enzh", version: "v", cacheName: "c", url: (p: string) => p, bytes: async () => new ArrayBuffer(1), fetch, touch: () => {} } as BundleHandle;
@@ -39,6 +39,14 @@ describe("translation service", () => {
     const { service, translateCalls } = deps();
     const first = await service.translateDishes([{ id: "b", name: "Durian" }], opts()); const second = await service.translateDishes([{ id: "c", name: "durian " }], opts());
     expect(translateCalls).toEqual([["Durian"]]); expect(first.items[0]).toMatchObject({ translatedText: "模:Durian", provider: "model" }); expect(second.items[0]).toMatchObject({ sourceText: "durian ", translatedText: "模:Durian", provider: "model" });
+  });
+  it("clearCache empties the service's own cache, so its next save cannot resurrect removed phrases", async () => {
+    const map = new Map<string, string>(); const storage = { getItem: (k: string) => map.get(k) ?? null, setItem: (k: string, v: string) => void map.set(k, v), removeItem: (k: string) => void map.delete(k) };
+    const { service, translateCalls } = deps({ cache: createTranslationCache(storage) });
+    await service.translateDishes([{ id: "b", name: "Durian" }], opts()); expect(Object.keys(JSON.parse(map.get(TRANSLATION_CACHE_KEY)!).entries)).toEqual(["durian"]);
+    service.clearCache(); expect(map.has(TRANSLATION_CACHE_KEY)).toBe(false);
+    await service.translateDishes([{ id: "c", name: "Mangosteen" }], opts()); expect(Object.keys(JSON.parse(map.get(TRANSLATION_CACHE_KEY)!).entries)).toEqual(["mangosteen"]); // the in-memory copy went too, not only the storage key
+    await service.translateDishes([{ id: "d", name: "durian" }], opts()); expect(translateCalls).toEqual([["Durian"], ["Mangosteen"], ["durian"]]);
   });
   it("cancelTranslations rejects a request waiting behind OCR right away, before any engine work", async () => {
     const ensure = vi.fn(async () => handle); const { service, translateCalls } = deps({ ensure }); await service.setOcrBusy(true);
