@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { PhotoInput } from "@/components/home/home-step";
+import type { OcrEngine } from "@/lib/ocr/client";
 import type { Analysis } from "@/lib/receipt-image/analyze";
 import { isValidQuad, type Point, type Quad } from "@/lib/receipt-image/geometry";
 import { correctionBlob, renderCorrection, type Adjustment } from "@/lib/receipt-image/render";
@@ -10,8 +11,8 @@ import { residualTextAngle } from "@/lib/receipt-image/suggest";
 const fullCorners: Quad = [{ x: 0.01, y: 0.01 }, { x: 0.99, y: 0.01 }, { x: 0.99, y: 0.99 }, { x: 0.01, y: 0.99 }];
 const cornerNames = ["Top left", "Top right", "Bottom right", "Bottom left"];
 
-export function PhotoAdjustment({ file, originalUrl, initialAdjustment, onAdjustmentChange, onSelect, onConfirm, onBack, onManual }: {
-  file: File; originalUrl: string; initialAdjustment?: Adjustment; onAdjustmentChange: (file: File, value: Adjustment) => void; onSelect: (file: File) => void; onConfirm: (image: Blob) => void; onBack: () => void; onManual: () => void;
+export function PhotoAdjustment({ file, originalUrl, initialAdjustment, engine, onEngineChange, onAdjustmentChange, onSelect, onConfirm, onBack, onManual }: {
+  file: File; originalUrl: string; initialAdjustment?: Adjustment; engine: OcrEngine; onEngineChange: (engine: OcrEngine) => void; onAdjustmentChange: (file: File, value: Adjustment) => void; onSelect: (file: File) => void; onConfirm: (image: Blob) => void; onBack: () => void; onManual: () => void;
 }) {
   const [image, setImage] = useState<ImageBitmap | null>(null);
   const [adjustment, setAdjustment] = useState<Adjustment>(initialAdjustment ?? { corners: null, angle: 0, quarterTurns: 0 });
@@ -135,8 +136,12 @@ export function PhotoAdjustment({ file, originalUrl, initialAdjustment, onAdjust
       <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = true; setError(null); setAnalysisStatus("Using the original photo."); setAdjustment(previous => ({ corners: null, angle: 0, quarterTurns: previous.quarterTurns })); }}>Use original photo</Button>
       <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = true; setError(null); setAnalysisStatus("Using the original photo."); setAdjustment({ corners: null, angle: 0, quarterTurns: 0 }); }}>Reset adjustments</Button>
     </div>
+    <fieldset className="engine-choice"><legend>Recognition engine</legend>
+      <label className="checkbox-label"><input type="radio" name="ocr-engine" value="standard" disabled={busy} checked={engine === "standard"} onChange={() => onEngineChange("standard")} /><span>Standard (fast)</span></label>
+      <label className="checkbox-label"><input type="radio" name="ocr-engine" value="precise" disabled={busy} checked={engine === "precise"} onChange={() => onEngineChange("precise")} /><span>Precise <small>first use downloads about 58 MB; stays in this browser</small></span></label>
+    </fieldset>
     <div className="adjustment-actions">
-      <Button type="button" disabled={!image || busy || !previewReady || analysisStatus === "Analyzing this photo…"} onClick={() => void confirm()}>{busy ? "Preparing photo…" : "Use this photo and recognize"}</Button>
+      <Button type="button" disabled={!image || busy || !previewReady || analysisStatus === "Analyzing this photo…"} onClick={() => void confirm()}>{busy ? "Preparing photo…" : engine === "precise" ? "Use this photo and recognize (precise)" : "Use this photo and recognize"}</Button>
       <PhotoInput onSelect={onSelect} label="Choose another receipt photo" />
       <Button type="button" variant="ghost" onClick={onBack}>Back</Button>
       <Button type="button" variant="ghost" onClick={onManual}>Enter items manually</Button>

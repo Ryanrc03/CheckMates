@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 const fixture = (name: string) => `tests/fixtures/receipts/${name}`;
 async function useAdjustedPhoto(page: Page) {
   await expect(page.getByRole("heading", { name: "Adjust your photo" })).toBeVisible();
-  await page.getByRole("button", { name: "Use this photo and recognize" }).click();
+  await page.getByRole("button", { name: /^Use this photo and recognize/ }).click();
   await expect(page.getByRole("heading", { name: "Adjust your photo" })).toBeHidden();
 }
 async function completeSharedBill(page: Page, total: string) {

@@ -232,6 +232,7 @@ h2 { font-size: 18px; font-weight: 700; }
 .adjustment-controls input { width: 70px; min-height: 44px; border: 1px solid #d5ccbd; border-radius: 9px; padding: 6px; background: #fffdf8; font-size: 16px; }
 .adjustment-actions > :first-child { width: 100%; }
 .adjustment-actions .photo-input { flex: 1 1 100%; }
+.engine-choice { display: grid; gap: .35rem; border: 0; padding: 0; margin: .5rem 0; }.engine-choice legend { font-weight: 600; margin-bottom: .25rem; }.engine-choice small { display: block; opacity: .75; }
 @media (max-width: 480px) { .adjustment-panels { grid-template-columns: 1fr; }.adjustment-image-wrap img { max-height: 300px; } }
 
 .translation-controls { display: grid; gap: .5rem; margin-bottom: 1rem; }
