@@ -1,0 +1,22 @@
+[
+  { "input": "Grilled Salmon", "accept": ["烤三文鱼", "烤鲑鱼"] },
+  { "input": "Mushroom Risotto", "accept": ["蘑菇烩饭", "蘑菇意式烩饭"] },
+  { "input": "No Ice", "accept": ["不要冰", "去冰"] },
+  { "input": "Lobster Roll", "accept": ["龙虾卷", "龙虾三明治"] },
+  { "input": "Lamb Chops (2)", "accept": ["羊排 (2)", "羊排(2)"] },
+  { "input": "Pork Katsu Curry", "accept": ["炸猪排咖喱"] },
+  { "input": "Garlic Shrimp", "accept": ["蒜蓉虾", "蒜香虾"] },
+  { "input": "Chocolate Lava Cake", "accept": ["熔岩巧克力蛋糕", "巧克力熔岩蛋糕"] },
+  { "input": "Beef Tacos (3)", "accept": ["牛肉塔可 (3)", "牛肉塔可(3)"] },
+  { "input": "Veggie Spring Rolls", "accept": ["蔬菜春卷", "素春卷"] },
+  { "input": "Spicy Miso Ramen", "accept": ["辣味噌拉面"] },
+  { "input": "Thai Basil Chicken", "accept": ["泰式罗勒鸡", "打抛鸡"] },
+  { "input": "Crispy Calamari", "accept": ["炸鱿鱼圈", "酥炸鱿鱼"] },
+  { "input": "Add Egg", "accept": ["加鸡蛋", "加蛋"] },
+  { "input": "Lg Lemonade", "accept": ["大份柠檬水", "大杯柠檬水"] },
+  { "input": "House Red Wine", "accept": ["招牌红酒", "餐厅红酒"] },
+  { "input": "Truffle Fries", "accept": ["松露薯条"] },
+  { "input": "Chkn Caesar Wrap", "accept": ["鸡肉凯撒卷", "凯撒鸡肉卷"] },
+  { "input": "Seafood Paella", "accept": ["海鲜饭", "西班牙海鲜饭"] },
+  { "input": "Sweet Corn Soup", "accept": ["玉米汤", "甜玉米汤"] }
+]

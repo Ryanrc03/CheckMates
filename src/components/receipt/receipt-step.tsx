@@ -3,7 +3,10 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Plus, Trash2, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TranslationControls } from "@/components/translation/translation-controls";
+import { DishLabel } from "@/components/translation/dish-label";
 import { useBillStore } from "@/store/useBillStore";
+import { useTranslationStore } from "@/store/useTranslationStore";
 import { moneyInput, parseMoney, formatMoney } from "@/lib/money";
 import { reconcileReceipt } from "@/lib/ocr/reconcile";
 import { PhotoInput } from "../home/home-step";
@@ -62,9 +65,10 @@ export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, s
       {draft?.financialRawText?.length&&<details><summary>Tax and total recognition evidence</summary><pre>{draft.financialRawText.join("\n\n---\n\n")}</pre></details>}
     </div>}
     <form onSubmit={submit} noValidate>
+      <TranslationControls items={items.map(i => ({ id: i.id, name: i.name }))}/>
       <div className="paper receipt-editor"><div className="receipt-heading"><b>THE RECEIPT</b><span>USD</span></div>
         {items.map((item, index) => <div key={item.id} className="item-editor">
-          <label className="item-name">Item {index + 1}<Input id={`name-${item.id}`} aria-label={`Item ${index + 1} name`} value={item.name} aria-invalid={!!errors[`name-${item.id}`]} aria-describedby={errors[`name-${item.id}`] ? `name-${item.id}-error` : undefined} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, name: e.target.value } : i))}/>{error(`name-${item.id}`)}</label>
+          <label className="item-name">Item {index + 1}<Input id={`name-${item.id}`} aria-label={`Item ${index + 1} name`} value={item.name} aria-invalid={!!errors[`name-${item.id}`]} aria-describedby={errors[`name-${item.id}`] ? `name-${item.id}-error` : undefined} onChange={e => { useTranslationStore.getState().invalidate(item.id); setItems(items.map(i => i.id === item.id ? { ...i, name: e.target.value } : i)); }}/><DishLabel id={item.id} originalName={item.name}/>{error(`name-${item.id}`)}</label>
           <label className="item-price">Price<Input id={`price-${item.id}`} aria-label={`Price for ${item.name || `item ${index + 1}`}`} inputMode="decimal" value={item.price} aria-invalid={!!errors[`price-${item.id}`]} aria-describedby={errors[`price-${item.id}`] ? `price-${item.id}-error` : undefined} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, price: e.target.value } : i))}/>{error(`price-${item.id}`)}</label>
           <Button type="button" className="remove-item" variant="ghost" aria-label={`Remove ${item.name || `item ${index + 1}`}`} onClick={() => setItems(items.filter(i => i.id !== item.id))}><Trash2 size={17}/></Button>
           {item.receiptDetails&&<ReceiptLineDetails name={item.name} details={item.receiptDetails} onDiscountChoice={choice=>chooseDiscount(item.id,choice)}/>}

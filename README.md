@@ -55,6 +55,15 @@ Missing subtotal, tax or total now triggers a targeted financial scan automatica
 
 OCR creates a draft, never a final bill. Order quantities, unit prices, tax codes, included options, and discount evidence are shown beside each item. Included grocery discounts are not subtracted twice; uncertain discount interpretation requires an explicit choice between printed line total and subtracting the listed discount. Missing prices/tax remain blank. Suggested tips are excluded; charged gratuity and your additional tip are separate fields. Original recognized text, printed totals, discrepancy and review notes remain visible. Users must check uncertain lines and explain mismatched totals before continuing. Failed or blank recognition leads to retry/manual entry, never sample data.
 
+## Local models
+
+Two optional features download models into this browser only; dish names and photos never leave the device.
+
+- **Show Chinese names** (receipt and assignment steps): dish names are translated by a built-in glossary and modifier rules first (negations, quantities, abbreviations such as `Chkn`/`Ndl`/`w/o`); names the glossary does not know can be translated by Mozilla's Firefox Translations en→zh-Hans model running in a Web Worker (bergamot-translator v0.6.0, MPL-2.0) after a one-time 57 MB download that you confirm. Translations are machine output for reference; the printed names stay editable and unchanged.
+- **Precise recognition** (engine choice on the photo-adjustment page): PaddleOCR PP-OCRv5 mobile (Apache-2.0) with onnxruntime-web (MIT) runs in a dedicated worker after a one-time download of about 58 MB; its text boxes are rebuilt into receipt lines and parsed by the same conservative parser as the standard Tesseract engine.
+
+Model files are pinned by SHA-256 in `scripts/prepare-model-assets.mjs`, copied to the ignored `public/models/` by `npm run prepare:models` (runs before `dev`/`build`), and listed with licenses in [docs/model-assets.md](docs/model-assets.md). In the browser they live in the Cache API, expire after 14 days without use, and can be removed from the home page's **Offline data** section; iOS may also remove them after 7 days without use. Verified on desktop Chromium only; iPhone and Android behaviour is not yet validated (see [docs/validation/v3-translation-quality.md](docs/validation/v3-translation-quality.md)).
+
 ## Recovery
 
 Use **Reset bill** in the header from any step to clear the receipt, people, amounts, unfinished allocations and photo adjustments and return to Start. It also cancels recognition so late output cannot restore the previous bill. Browser refresh continues to restore the current saved draft; use Reset bill when starting a different bill.

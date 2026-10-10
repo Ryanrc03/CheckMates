@@ -261,7 +261,15 @@ h2 { font-size: 18px; font-weight: 700; }
 .adjustment-controls input { width: 70px; min-height: 44px; border: 1px solid #d5ccbd; border-radius: 9px; padding: 6px; background: #fffdf8; font-size: 16px; }
 .adjustment-actions > :first-child { width: 100%; }
 .adjustment-actions .photo-input { flex: 1 1 100%; }
+.engine-choice { display: grid; gap: .35rem; border: 0; padding: 0; margin: .5rem 0; }.engine-choice legend { font-weight: 600; margin-bottom: .25rem; }.engine-choice small { display: block; opacity: .75; }
 @media (max-width: 480px) { .adjustment-panels { grid-template-columns: 1fr; }.adjustment-image-wrap img { max-height: 300px; } }
+
+.translation-controls { display: grid; gap: .5rem; margin-bottom: 1rem; }
+.translation-controls .translation-download .row { align-items: center; flex-wrap: wrap; gap: .5rem; }
+.translation-status { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+.dish-translation { display: block; font-size: .95rem; line-height: 1.3; overflow-wrap: anywhere; margin-top: .15rem; }
+.assignment-title > div { min-width: 0; }
+.offline-data { margin-top: 1rem; }.offline-data summary { cursor: pointer; font-weight: 600; }.offline-row { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .35rem 0; flex-wrap: wrap; }
 .allocation-editor { display: grid; gap: 14px; min-width: 0; }
 .split-method { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
 .split-method select { border: 1px solid #d7d1c7; border-radius: 8px; background: white; padding: 9px 12px; max-width: 65%; font: inherit; }

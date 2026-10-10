@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "bundles": {
+    "translate-enzh": {
+      "id": "translate-enzh",
+      "version": "2.2-b0.6.0",
+      "license": "MPL-2.0 (Mozilla translations-models en->zh-Hans v2.2; bergamot-translator v0.6.0)",
+      "totalBytes": 56895497,
+      "downloadBytes": 57016094,
+      "extraBytes": 0,
+      "files": [
+        {
+          "path": "model.enzh.intgemm.alphas.bin",
+          "bytes": 43849787,
+          "sha256": "4e5accc141373565ddc8fa1565bceaa8d0c3482a82cab8131c719ebcc6c2157c",
+          "role": "model",
+          "cache": "cache-api"
+        },
+        {
+          "path": "srcvocab.enzh.spm",
+          "bytes": 806952,
+          "sha256": "bd9b65504acc6d9726dd281f7defc2adb7c2c22d0688fe2f84697de25197c8c5",
+          "role": "model",
+          "cache": "cache-api"
+        },
+        {
+          "path": "trgvocab.enzh.spm",
+          "bytes": 772004,
+          "sha256": "aded6993c36e440284d11cec3f6b8aef9c0e43188a772d80be342a713adf223d",
+          "role": "model",
+          "cache": "cache-api"
+        },
+        {
+          "path": "lex.50.50.enzh.s2t.bin",
+          "bytes": 6506248,
+          "sha256": "4a5e5827788060f1d718a8132b69440929387514a045796e9b77f935db68c055",
+          "role": "model",
+          "cache": "cache-api"
+        },
+        {
+          "path": "runtime/bergamot-translator-v0.6.0.wasm",
+          "bytes": 4960506,
+          "sha256": "a3a89d9ad0a4ed8f27bf3e403701b23f5709816f6376438503f2fa5b0182c2dc",
+          "role": "runtime",
+          "cache": "cache-api"
+        },
+        {
+          "path": "runtime/bergamot-translator.js",
+          "bytes": 100187,
+          "sha256": "faff1ef6285b0d26f01787776fd49299dfb756ecb9688aa990c250e66797b47d",
+          "role": "runtime",
+          "cache": "http"
+        },
+        {
+          "path": "runtime/translator-worker.js",
+          "bytes": 3685,
+          "sha256": "db631ebee82e57ab8d980ed9f964731f1b8984fc54025bf6f64374686124ba20",
+          "role": "runtime",
+          "cache": "http"
+        },
+        {
+          "path": "LICENSE.txt",
+          "bytes": 16725,
+          "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5",
+          "role": "runtime",
+          "cache": "http"
+        }
+      ],
+      "sources": [
+        {
+          "file": "model.enzh.intgemm.alphas.bin",
+          "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-models/a7ff7d5e-e67e-406c-a34b-a7edea35b10e.bin"
+        },
+        {
+          "file": "srcvocab.enzh.spm",
+          "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-models/ea98c52c-58dc-45d5-af23-38f2b029d020.spm"
+        },
+        {
+          "file": "trgvocab.enzh.spm",
+          "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-models/bddbda68-d4d2-4317-a0a1-119caa47525e.spm"
+        },
+        {
+          "file": "lex.50.50.enzh.s2t.bin",
+          "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-models/da8fccc0-31df-4665-9703-96d36606e019.bin"
+        },
+        {
+          "file": "runtime/bergamot-translator-v0.6.0.wasm",
+          "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-wasm/05082c31-aee8-4249-9e01-c1865afd7520.wasm"
+        },
+        {
+          "file": "runtime/bergamot-translator.js",
+          "url": "repo:vendor/bergamot/bergamot-translator.js"
+        },
+        {
+          "file": "runtime/translator-worker.js",
+          "url": "repo:vendor/bergamot/translator-worker.js"
+        },
+        {
+          "file": "LICENSE.txt",
+          "url": "repo:vendor/bergamot/LICENSE"
+        }
+      ]
+    },
+    "ocr-precise": {
+      "id": "ocr-precise",
+      "version": "ppocrv5m-ort1.24.3",
+      "license": "Apache-2.0 (PaddleOCR models, @paddleocr/paddleocr-js); MIT (onnxruntime-web)",
+      "totalBytes": 21544960,
+      "downloadBytes": 58106678,
+      "extraBytes": 11500000,
+      "files": [
+        {
+          "path": "PP-OCRv5_mobile_det_onnx_infer.tar",
+          "bytes": 4843520,
+          "sha256": "781056046c9ed77a15c94681605db6a0f62317c2e9cce6931c71da2478d4bc30",
+          "role": "model",
+          "cache": "cache-api"
+        },
+        {
+          "path": "PP-OCRv5_mobile_rec_onnx_infer.tar",
+          "bytes": 16701440,
+          "sha256": "f7e792bc836f36e7ef895ad47c426d75b0b75b1650caa6d63fe9418441ffba8c",
+          "role": "model",
+          "cache": "cache-api"
+        },
+        {
+          "path": "runtime/ort/ort-wasm-simd-threaded.jsep.wasm",
+          "bytes": 25014754,
+          "sha256": "2e0a3d0e3f6b7c13ecfaba38c13691fd19c9ed470e72f9d7d8416ca59ab6dbcd",
+          "role": "runtime",
+          "cache": "http"
+        },
+        {
+          "path": "runtime/ort/ort-wasm-simd-threaded.jsep.mjs",
+          "bytes": 46595,
+          "sha256": "9a99acd12acc495184c9ea4d458ac9424f8180aacfbc7b8371ed64f9351e4a81",
+          "role": "runtime",
+          "cache": "http"
+        },
+        {
+          "path": "runtime/ort/NOTICE.txt",
+          "bytes": 177,
+          "sha256": "b1d8d45d7aad5cd1ed46615051175f8b4b9720ee55adf679eddb6b1ba7b584ab",
+          "role": "runtime",
+          "cache": "http"
+        },
+        {
+          "path": "runtime/paddleocr-js/NOTICE.txt",
+          "bytes": 192,
+          "sha256": "f0db5e320d185cf3f8e0eb4b32910f1e0277791f51381ef60c8e62cdab006bb8",
+          "role": "runtime",
+          "cache": "http"
+        }
+      ],
+      "sources": [
+        {
+          "file": "PP-OCRv5_mobile_det_onnx_infer.tar",
+          "url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv5_mobile_det_onnx_infer.tar"
+        },
+        {
+          "file": "PP-OCRv5_mobile_rec_onnx_infer.tar",
+          "url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv5_mobile_rec_onnx_infer.tar"
+        },
+        {
+          "file": "runtime/ort/ort-wasm-simd-threaded.jsep.wasm",
+          "url": "npm:onnxruntime-web@1.24.3/dist/ort-wasm-simd-threaded.jsep.wasm"
+        },
+        {
+          "file": "runtime/ort/ort-wasm-simd-threaded.jsep.mjs",
+          "url": "npm:onnxruntime-web@1.24.3/dist/ort-wasm-simd-threaded.jsep.mjs"
+        },
+        {
+          "file": "runtime/ort/NOTICE.txt",
+          "url": "npm:onnxruntime-web@1.24.3/package.json"
+        },
+        {
+          "file": "runtime/paddleocr-js/NOTICE.txt",
+          "url": "npm:@paddleocr/paddleocr-js@0.4.2/package.json"
+        }
+      ]
+    }
+  }
+}

@@ -5,13 +5,15 @@ import {readFinancialEvidence} from "./financial-evidence";
 import {prepareFinancialImage} from "./financial-image";
 type ProgressMessage = { status: string; progress?: number };
 export type OcrWorker = { recognize: (image: Blob, scan?: {pageSegMode:3|4|6|11}) => Promise<{ data: OcrEvidence }>; terminate: () => Promise<unknown> };
-type Options = { signal: AbortSignal; onProgress: (stage: string, progress: number | null) => void; enhanced?:boolean };
-type Factory = (logger: (message: ProgressMessage) => void) => Promise<OcrWorker>;
+export type OcrEngine = "standard" | "precise";
+type Options = { signal: AbortSignal; onProgress: (stage: string, progress: number | null) => void; enhanced?:boolean; engine?: OcrEngine };
+type Factory = (logger: (message: ProgressMessage) => void, signal: AbortSignal) => Promise<OcrWorker>;
 const aborted = () => new DOMException("Recognition canceled. You can select another photo or enter items manually.", "AbortError");
 
-export function createReceiptRecognizer(factory: Factory,prepareFinancial?:(image:Blob,kind:"summary"|"tail",evidence?:OcrEvidence)=>Promise<Blob>) {
+/** Enhanced and financial re-scans are Tesseract page-segmentation tricks; the precise (PaddleOCR) engine runs one pass. */
+export function createReceiptRecognizer(factories: Record<OcrEngine, Factory>,prepareFinancial?:(image:Blob,kind:"summary"|"tail",evidence?:OcrEvidence)=>Promise<Blob>) {
   let cancelActive: (() => void) | null = null;
-  return async (image: Blob, { signal, onProgress, enhanced }: Options): Promise<OcrEvidence> => {
+  return async (image: Blob, { signal, onProgress, enhanced, engine = "standard" }: Options): Promise<OcrEvidence> => {
     cancelActive?.();
     if (signal.aborted) throw aborted();
     let ended = false; let worker: OcrWorker | null = null; let terminated = false;
@@ -22,12 +24,13 @@ export function createReceiptRecognizer(factory: Factory,prepareFinancial?:(imag
     cancelActive = cancel; signal.addEventListener("abort", cancel, { once: true });
     const timer = setTimeout(() => { ended = true; release(); rejectStop(new Error("Recognition exceeded 120 seconds. Try a smaller, clearer photo or enter items manually.")); }, 120000);
     const work = (async () => {
-      onProgress("Loading recognition resources", null);
-      worker = await factory(message => { if (!ended) onProgress(message.status, typeof message.progress === "number" && Number.isFinite(message.progress) ? Math.max(0, Math.min(1, message.progress)) : null); });
+      onProgress(engine === "precise" ? "Preparing precise recognition" : "Loading recognition resources", null);
+      worker = await factories[engine](message => { if (!ended) onProgress(message.status, typeof message.progress === "number" && Number.isFinite(message.progress) ? Math.max(0, Math.min(1, message.progress)) : null); }, signal);
       if (ended) { release(); throw aborted(); }
       const first = await worker.recognize(image);let data=first.data;
       if (ended) throw aborted();
       if (!data.text.trim()) throw new Error("No text found. Try a clearer receipt photo or enter items manually.");
+      if (engine === "precise") return data;
       if(enhanced&&shouldRetryReceipt(data,parseReceiptText(data.text,data.lines))){
         onProgress("Checking an enhanced scan",null);
         try {
@@ -63,7 +66,7 @@ export function createReceiptRecognizer(factory: Factory,prepareFinancial?:(imag
     finally { ended = true; clearTimeout(timer); signal.removeEventListener("abort", cancel); release(); if (cancelActive === cancel) cancelActive = null; }
   };
 }
-export const recognizeReceipt = createReceiptRecognizer(async logger => {
-  const { createBrowserWorker } = await import("./worker");
-  return createBrowserWorker(logger);
+export const recognizeReceipt = createReceiptRecognizer({
+  standard: async logger => { const { createBrowserWorker } = await import("./worker"); return createBrowserWorker(logger); },
+  precise: async (logger, signal) => { const { createPreciseWorker } = await import("./paddle/engine"); return createPreciseWorker(logger, signal); },
 },prepareFinancialImage);
