@@ -1,6 +1,7 @@
 import { Camera, Upload, Utensils, ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBillStore } from "@/store/useBillStore";
+import { OfflineData } from "./offline-data";
 export function PhotoInput({ onSelect, camera = false, label }: { onSelect: (file: File) => void; camera?: boolean; label: string }) {
   return <label className={`photo-input ${camera ? "primary" : ""}`}>{camera ? <Camera size={20} /> : <Upload size={20} />}{label}<input aria-label={label} type="file" accept="image/jpeg,image/png,image/webp" capture={camera ? "environment" : undefined} onChange={e => { const file = e.target.files?.[0]; if (file) onSelect(file); e.target.value = ""; }} /></label>;
 }
@@ -23,5 +24,6 @@ export function HomeStep({ onPhotoSelected, onDemo, busy, stage, progress, error
     <p className="privacy"><ShieldCheck size={15} /> No sign-up. No photo uploads to a server.</p>
     <p className="fine-print">English receipts · USD · JPEG, PNG or WebP · Up to 15 MiB</p>
     <div className="how-it-works"><span><b>01</b> Snap & check</span><span><b>02</b> Pick your people</span><span><b>03</b> Share the split</span></div>
+    <OfflineData />
   </section>;
 }
