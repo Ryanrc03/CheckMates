@@ -49,6 +49,15 @@ The application owns the native worker from construction and uses the pinned eng
 
 OCR creates a draft, never a final bill. Missing prices/tax remain blank. Suggested tips are excluded; charged gratuity and your additional tip are separate fields. Original recognized text, printed totals, discrepancy and review notes remain visible. Users must check uncertain lines and explain mismatched totals before continuing. Failed or blank recognition leads to retry/manual entry, never sample data.
 
+## Local models
+
+Two optional features download models into this browser only; dish names and photos never leave the device.
+
+- **Show Chinese names** (receipt and assignment steps): dish names are translated by a built-in glossary and modifier rules first (negations, quantities, abbreviations such as `Chkn`/`Ndl`/`w/o`); names the glossary does not know can be translated by Mozilla's Firefox Translations en→zh-Hans model running in a Web Worker (bergamot-translator v0.6.0, MPL-2.0) after a one-time 57 MB download that you confirm. Translations are machine output for reference; the printed names stay editable and unchanged.
+- **Precise recognition** (engine choice on the photo-adjustment page): PaddleOCR PP-OCRv5 mobile (Apache-2.0) with onnxruntime-web (MIT) runs in a dedicated worker after a one-time download of about 58 MB; its text boxes are rebuilt into receipt lines and parsed by the same conservative parser as the standard Tesseract engine.
+
+Model files are pinned by SHA-256 in `scripts/prepare-model-assets.mjs`, copied to the ignored `public/models/` by `npm run prepare:models` (runs before `dev`/`build`), and listed with licenses in [docs/model-assets.md](docs/model-assets.md). In the browser they live in the Cache API, expire after 14 days without use, and can be removed from the home page's **Offline data** section; iOS may also remove them after 7 days without use. Verified on desktop Chromium only; iPhone and Android behaviour is not yet validated (see [docs/validation/v3-translation-quality.md](docs/validation/v3-translation-quality.md)).
+
 ## Recovery
 
 The `bitesplit-session` localStorage entry has schema version 1. It stores items, names, assignments, current step, source filename, raw OCR draft/warnings, and unfinished editor text. It excludes photos, object URLs, worker state, progress, and calculated results. After refresh, reattach a photo to preview it without replacing edits. Recognition must be explicitly restarted. Invalid cache is discarded safely; a failed write shows a warning but editing continues. Start a new bill replaces the saved session with an empty one.

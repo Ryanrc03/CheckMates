@@ -20,6 +20,7 @@ const eslintConfig = defineConfig([
     "public/models/**",
     "vendor/**",
     ".model-assets-cache/**",
+    ".worktrees/**",
   ]),
 ]);
 

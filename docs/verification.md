@@ -46,3 +46,19 @@ Synthetic tests do not prove all practical OCR layouts. Real-photo noise and mis
 ## Deployment verification
 
 The public `main` branch at `9481d04` was pushed to `https://github.com/Ryanrc03/CheckMates` as a new root snapshot, so the original unredacted receipt is absent from remote history. Vercel production deployment `dpl_2FQzwVn75n5srGrQQzQcAq7t5TLB` is ready at https://checkmates-pi.vercel.app. The public homepage, OCR manifest, worker and English model returned HTTP 200. A fresh browser session uploaded `clear-cafe.png` to the deployed site and read Soup as $8.25 through the real worker. GitHub auto-deploy is not connected: Vercel reported that this account needs a GitHub Login Connection. Subsequent changes require CLI deployment until that connection is added.
+
+## 2026-10-10 V3 local translation + precise OCR (branch `feat/v3-local-translation-precise-ocr`, not deployed)
+
+Environment: Windows 11, Node 24.12.0, Next.js 16.3.6 (Turbopack), Chromium 145 (Playwright 1.58.2). Desktop verification only; no iPhone or Android run yet.
+
+| Check | Result |
+| --- | --- |
+| `npm run lint` | PASS (old `.worktrees/` build output is now ignored) |
+| `npx tsc --noEmit --incremental false` | PASS |
+| `npm test` | PASS, 139 tests across 20 files |
+| `npm run build` | PASS; `prepare:models` verified both bundles against pinned SHA-256 |
+| `E2E_PRODUCTION=1 npx playwright test` | PASS, 34 production-mode Chromium tests (real bergamot model download + translation + removal; real PaddleOCR precise recognition of `clear-diner.png` with cache reuse; cancellation paths) |
+| `curl -I /models/translate-enzh/2.2-b0.6.0/runtime/translator-worker.js` | `Cache-Control: public, max-age=31536000, immutable` |
+| `node scripts/translation-quality.mjs` | PASS (deterministic negation/quantity checks); see [v3-translation-quality.md](validation/v3-translation-quality.md): probe set 47/50 exact (42 glossary, 6 rule, 2 model), hold-out 8/20 exact with 16 model outputs, 0 untranslated |
+
+Limits: all timings and storage behaviour are desktop numbers; the 7-day iOS purge, Website Data listing, memory ceilings and WebAssembly SIMD availability on real phones remain to be measured before any release. Model outputs are machine translations for reference only.
