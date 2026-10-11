@@ -96,3 +96,5 @@ Trigger: on an iPhone the deployed precise engine killed the tab ("Can't open th
 | WebKit precise flow memory (`WebKitWebProcess` working set over baseline) | +0.78 GB peak, finishes in 7 s; before the fix +3.8 GB and never finished |
 
 Limit: still desktop WebKit, not a phone. The first real-iPhone run after deployment is the acceptance test.
+
+Deployment: PR [#7](https://github.com/Ryanrc03/CheckMates/pull/7) merged as `9cf5627`; production redeployed from `main` as `dpl_4ojemgFFPqc2q9oi8eo2wcriGayk` (ready). The live manifest serves `ppocrv5m-ort1.24.3-wasm`, both runtime files return HTTP 200, and the WebKit precise flow against https://checkmates-pi.vercel.app finished in 9 s with the correct prices and +0.81 GB peak.
