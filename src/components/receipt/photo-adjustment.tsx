@@ -138,7 +138,7 @@ export function PhotoAdjustment({ file, originalUrl, initialAdjustment, engine, 
     </div>
     <fieldset className="engine-choice"><legend>Recognition engine</legend>
       <label className="checkbox-label"><input type="radio" name="ocr-engine" value="standard" disabled={busy} checked={engine === "standard"} onChange={() => onEngineChange("standard")} /><span>Standard (fast)</span></label>
-      <label className="checkbox-label"><input type="radio" name="ocr-engine" value="precise" disabled={busy} checked={engine === "precise"} onChange={() => onEngineChange("precise")} /><span>Precise <small>first use downloads about 58 MB; stays in this browser</small></span></label>
+      <label className="checkbox-label"><input type="radio" name="ocr-engine" value="precise" disabled={busy} checked={engine === "precise"} onChange={() => onEngineChange("precise")} /><span>Precise <small>first use downloads about 45 MB; stays in this browser</small></span></label>
     </fieldset>
     <div className="adjustment-actions">
       <Button type="button" disabled={!image || busy || !previewReady || analysisStatus === "Analyzing this photo…"} onClick={() => void confirm()}>{busy ? "Preparing photo…" : engine === "precise" ? "Use this photo and recognize (precise)" : "Use this photo and recognize"}</Button>

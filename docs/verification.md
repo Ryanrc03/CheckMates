@@ -82,3 +82,17 @@ Notes: the precise (PaddleOCR) engine returns `OcrEvidence` with lines and inten
 Deployment: branch pushed to GitHub and published with the Vercel CLI (`vercel deploy --prod`). Production deployment `dpl_6VM7y4bFGqWw8B7jdnMEYb61WwK1` is ready at https://checkmates-pi.vercel.app; the homepage, `/models/manifest.json` and the bergamot translator worker returned HTTP 200, and a live browser session showed the sample bill with Chinese dish names and no console errors. GitHub auto-deploy is still not connected.
 
 PR [#6](https://github.com/Ryanrc03/CheckMates/pull/6) merged into `main` as `d499ff1`; production was redeployed from `main` as `dpl_3RFFTZZfNikunTwKwE6XKnJuZB4P` (ready, same checks green: homepage, model manifest and translator worker HTTP 200, live sample bill with Chinese names, Reset bill, no console errors).
+
+## 2026-10-10 iOS fix: precise engine on the wasm-only ORT build (branch `fix/ios-precise-engine-memory`)
+
+Trigger: on an iPhone the deployed precise engine killed the tab ("Can't open this page" in Chrome for iOS). Root cause and measurements: [2026-10-10-ios-precise-engine-memory.md](validation/2026-10-10-ios-precise-engine-memory.md).
+
+| Check | Result |
+| --- | --- |
+| `npm run lint`, `npx tsc --noEmit --incremental false` | PASS |
+| `npm test` | PASS, 197 tests across 30 files (new: engine posts ImageData when the page cannot rasterize in a worker) |
+| `npm run build` | PASS; `ocr-precise` bundle is now `ppocrv5m-ort1.24.3-wasm` (12 MB `ort-wasm-simd-threaded.wasm` + glue, no jsep files) |
+| `E2E_PRODUCTION=1 npx playwright test` (chromium + new webkit project, private photos supplied) | PASS, 72/72: 62 chromium, 10 webkit (`precise-ocr`, `ocr-flow` on the iPhone 14 descriptor) |
+| WebKit precise flow memory (`WebKitWebProcess` working set over baseline) | +0.78 GB peak, finishes in 7 s; before the fix +3.8 GB and never finished |
+
+Limit: still desktop WebKit, not a phone. The first real-iPhone run after deployment is the acceptance test.

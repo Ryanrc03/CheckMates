@@ -8,8 +8,12 @@ type MatLike = { delete(): void }; type CvLike = { matFromImageData(imageData: I
 type SourceMat = { width: number; height: number; mat: MatLike; dispose(): void };
 type Engine = Awaited<ReturnType<typeof PaddleOCR.create>>;
 let engine: Engine | null = null;
+const isImageData = (source: unknown): source is ImageData => !!source && typeof source === "object" && "data" in source && "width" in source && "height" in source;
 // The SDK's built-in sourceToMat calls document.createElement("canvas") and cv.imread references HTMLImageElement (ReferenceError in workers).
+// WebKit without OffscreenCanvas in workers (iOS before 16.4) gets ImageData decoded on the main thread instead of a Blob.
 async function workerSourceToMat(cv: CvLike, source: unknown): Promise<SourceMat> {
+  if (isImageData(source)) { const mat = cv.matFromImageData(source); return { width: source.width, height: source.height, mat, dispose() { mat.delete(); } }; }
+  if (typeof OffscreenCanvas === "undefined") throw new Error("This browser cannot rasterize images inside a worker.");
   const bitmap = source instanceof ImageBitmap ? source : await createImageBitmap(source as Blob);
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height); const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) throw new Error("OffscreenCanvas 2D context unavailable in worker."); ctx.drawImage(bitmap, 0, 0);
@@ -31,8 +35,8 @@ async function init(payload: PaddleInitPayload) {
   (instance as unknown as { sourceToMat: unknown }).sourceToMat = workerSourceToMat; // OcrPipelineRunner stores it as a plain instance field
   const summary = await instance.initialize(); engine = instance; return { backend: summary.backend, elapsedMs: summary.elapsedMs };
 }
-async function predict(blob: Blob): Promise<PaddlePredictResult> {
-  if (!engine) throw new Error("Engine not initialized."); const [result] = await engine.predict(blob);
+async function predict(image: Blob | ImageData): Promise<PaddlePredictResult> {
+  if (!engine) throw new Error("Engine not initialized."); const [result] = await engine.predict(image as Blob);
   return { items: result.items, metrics: result.metrics }; // OcrResultItem { poly: [number, number][], text, score } already matches OcrBox
 }
 async function dispose() { if (engine) { await engine.dispose(); engine = null; } return true; }

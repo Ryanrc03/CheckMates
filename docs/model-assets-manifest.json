@@ -6,7 +6,7 @@
       "version": "2.2-b0.6.0",
       "license": "MPL-2.0 (Mozilla translations-models en->zh-Hans v2.2; bergamot-translator v0.6.0)",
       "totalBytes": 56895497,
-      "downloadBytes": 57016094,
+      "downloadBytes": 57020177,
       "extraBytes": 0,
       "files": [
         {
@@ -46,22 +46,22 @@
         },
         {
           "path": "runtime/bergamot-translator.js",
-          "bytes": 100187,
-          "sha256": "faff1ef6285b0d26f01787776fd49299dfb756ecb9688aa990c250e66797b47d",
+          "bytes": 103828,
+          "sha256": "4790cb7375f7c97ceadafed42e5236a9434ad6b3b9d38092fdbe78e6bd0c2047",
           "role": "runtime",
           "cache": "http"
         },
         {
           "path": "runtime/translator-worker.js",
-          "bytes": 3685,
-          "sha256": "db631ebee82e57ab8d980ed9f964731f1b8984fc54025bf6f64374686124ba20",
+          "bytes": 3754,
+          "sha256": "791b83b78299a65d1e71c68fc8dc7b085784b6b9d892fa2585c42fd66731f8a1",
           "role": "runtime",
           "cache": "http"
         },
         {
           "path": "LICENSE.txt",
-          "bytes": 16725,
-          "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5",
+          "bytes": 17098,
+          "sha256": "2684de17300e0a434686f1ec7f8af6045207a4b457a3fe04b2b9ce655e7c5d50",
           "role": "runtime",
           "cache": "http"
         }
@@ -103,10 +103,10 @@
     },
     "ocr-precise": {
       "id": "ocr-precise",
-      "version": "ppocrv5m-ort1.24.3",
+      "version": "ppocrv5m-ort1.24.3-wasm",
       "license": "Apache-2.0 (PaddleOCR models, @paddleocr/paddleocr-js); MIT (onnxruntime-web)",
       "totalBytes": 21544960,
-      "downloadBytes": 58106678,
+      "downloadBytes": 45431348,
       "extraBytes": 11500000,
       "files": [
         {
@@ -124,16 +124,16 @@
           "cache": "cache-api"
         },
         {
-          "path": "runtime/ort/ort-wasm-simd-threaded.jsep.wasm",
-          "bytes": 25014754,
-          "sha256": "2e0a3d0e3f6b7c13ecfaba38c13691fd19c9ed470e72f9d7d8416ca59ab6dbcd",
+          "path": "runtime/ort/ort-wasm-simd-threaded.wasm",
+          "bytes": 12361745,
+          "sha256": "be0e129949062ad50290ef94683fac8be5bb6156f709e030b7a5f1661a2f6c17",
           "role": "runtime",
           "cache": "http"
         },
         {
-          "path": "runtime/ort/ort-wasm-simd-threaded.jsep.mjs",
-          "bytes": 46595,
-          "sha256": "9a99acd12acc495184c9ea4d458ac9424f8180aacfbc7b8371ed64f9351e4a81",
+          "path": "runtime/ort/ort-wasm-simd-threaded.mjs",
+          "bytes": 24274,
+          "sha256": "5687566b1bc1c8cf628d76c2ddb16b2a3b81a7997273d4666564880495088e57",
           "role": "runtime",
           "cache": "http"
         },
@@ -162,12 +162,12 @@
           "url": "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv5_mobile_rec_onnx_infer.tar"
         },
         {
-          "file": "runtime/ort/ort-wasm-simd-threaded.jsep.wasm",
-          "url": "npm:onnxruntime-web@1.24.3/dist/ort-wasm-simd-threaded.jsep.wasm"
+          "file": "runtime/ort/ort-wasm-simd-threaded.wasm",
+          "url": "npm:onnxruntime-web@1.24.3/dist/ort-wasm-simd-threaded.wasm"
         },
         {
-          "file": "runtime/ort/ort-wasm-simd-threaded.jsep.mjs",
-          "url": "npm:onnxruntime-web@1.24.3/dist/ort-wasm-simd-threaded.jsep.mjs"
+          "file": "runtime/ort/ort-wasm-simd-threaded.mjs",
+          "url": "npm:onnxruntime-web@1.24.3/dist/ort-wasm-simd-threaded.mjs"
         },
         {
           "file": "runtime/ort/NOTICE.txt",
