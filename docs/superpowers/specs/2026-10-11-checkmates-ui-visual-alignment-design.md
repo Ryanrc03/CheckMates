@@ -182,10 +182,10 @@ shadcn 语义名映射：
 | --- | --- |
 | `--surface` | `#fffdf7` `#fffdf8` `#fffcf5` `#fffefa`，`select` 的 `white` |
 | `--surface-sunken` | `#eee7d7` `#eee8dc` `#eee9de` `#f4efe5` |
-| `--background` | `#faf7ef`；底栏 `#faf7eff5` → `color-mix(in oklch, var(--background) 96%, transparent)` |
+| `--background` | `#faf7ef`；底栏 `#faf7eff5` → `color-mix(in srgb, var(--background) 96%, transparent)` |
 | `--foreground` | `#263d30`（选中标签文字） |
 | `--muted-foreground` | `#564b42` `#696251` `#6a5a3d` `#6f6555` `#716657` `#746959` `#746b5d` `#786951` `#786f60` `#796e5c` `#7a6d59` `#7b7265` `#81715c` `#897d68` `#907662` `#9b8b74` |
-| `--primary` | `#ad4028` `#b9432a` `#c54b30`；角点多边形 `#b9432a1a` → `color-mix(in oklch, var(--primary) 10%, transparent)` |
+| `--primary` | `#ad4028` `#b9432a` `#c54b30`；角点多边形 `#b9432a1a` → `color-mix(in srgb, var(--primary) 10%, transparent)` |
 | `--primary-foreground` | `#fff8e8`，`white` |
 | `--primary-strong` | `#8b4834` `#8d311e` `#8e3c2a` `#8e4731` `#92513a` `#995237` `#a1442a` `#a53a24` `#a83d27` `#a95536` |
 | `--success`（= `--ring`） | `#315f4b` `#386e59` `#3e654e` `#4b6657` `#557355` |
@@ -197,7 +197,7 @@ shadcn 语义名映射：
 | `--input` | `#bca77a` `#d5ccbd` `#d9cebc` |
 | 朋友色（浅 / 深） | `#d5e7d9` `#f3dccc` `#e5ddf1` `#f3e9bb` / `#b8d9c5` `#edb897` `#dac7eb` `#edc864` |
 | `--chart-1/2/3` | `#426c59` / `#c36b44` / `#8372a6` |
-| 派生值（写在组件里，基于 token） | 朋友色卡片内分隔线 `#0001` `#0002` `#0003` → `color-mix(in oklch, var(--foreground) 14%, transparent)`；点阵背景 `#bfb5a21f` → `color-mix(in oklch, var(--rule) 45%, transparent)`；构成条底 `#fff9` → `color-mix(in oklch, var(--surface) 60%, transparent)`；插画叠纸投影 `#ddd1b34f` → `color-mix(in oklch, var(--rule) 30%, transparent)` |
+| 派生值（写在组件里，基于 token） | 朋友色卡片内分隔线 `#0001` `#0002` `#0003` → `color-mix(in srgb, var(--foreground) 14%, transparent)`；点阵背景 `#bfb5a21f` → `color-mix(in srgb, var(--rule) 45%, transparent)`；构成条底 `#fff9` → `color-mix(in srgb, var(--surface) 60%, transparent)`；插画叠纸投影 `#ddd1b34f` → `color-mix(in srgb, var(--rule) 30%, transparent)` |
 | 阴影 | `#4831160a` `#58412805` → `--shadow-card`；`#302b2570` → `--shadow-raised` |
 
 ## 4. 组件规范
@@ -324,7 +324,7 @@ shadcn 语义名映射：
 
 ### 4.9 底部操作栏 `.bottom-actions`
 
-- **结构**：固定在底部。外层通栏，带 `color-mix(--background 96%)` 底、12px blur 和 1px `--border` 上边；内层按 §3.4 的布局规则与内容列对齐。
+- **结构**：固定在底部。外层通栏，带 `color-mix(in srgb, --background 96%, transparent)` 底、12px blur 和 1px `--border` 上边；内层按 §3.4 的布局规则与内容列对齐。
 - **间距**：上下内边距 12px，底部另加安全区。
 - **按钮**：左边是次要按钮（outline，宽度随内容），右边是主按钮（default，`flex: 1`）。按钮使用 Button 自身的尺寸，删除 `.bottom-actions [data-slot=button]` 覆盖；文字放不下时折成两行（见 §4.1）。
 - **范围**：所有步骤一致，包括照片调整页；首页没有底栏。

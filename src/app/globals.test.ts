@@ -32,3 +32,8 @@ it("keeps every font size at 12px or larger", () => {
 it("never restyles shadcn primitives through data-slot selectors", () => {
   expect(css).not.toMatch(/\[data-slot/);
 });
+
+// Chromium resolves color-mix(in oklch, <color>, transparent) to hue "none", which renders the tint pink; alpha-only mixes use srgb.
+it("mixes with transparent in srgb", () => {
+  expect(css).not.toMatch(/color-mix\(in oklch[^;]*transparent/);
+});
