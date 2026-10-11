@@ -5,7 +5,7 @@ import { useBillStore } from "@/store/useBillStore";
 import { formatMoney } from "@/lib/money";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { personColor } from "../people/people-step";
+import { personColor } from "../people/person-style";
 
 function fromItem(item: ReceiptItem, people: Person[]): AllocationEdit {
   const a = item.allocation;
@@ -34,7 +34,7 @@ export function ItemAllocationEditor({item,people}:{item:ReceiptItem;people:Pers
   return <div className="allocation-editor">
     <label className="split-method">Split method<select value={edit.mode} onChange={e=>mode(e.target.value as ItemAllocation["mode"])}><option value="equal">Equal</option><option value="ratio">Ratio</option><option value="quantity">Quantity</option></select></label>
     {edit.mode==="equal"?<>
-      <div className="person-options">{people.map(p=><Button key={p.id} variant="outline" className={`person-chip ${personColor(p.id)}`} aria-pressed={selected.includes(p.id)} onClick={()=>s.togglePerson(item.id,p.id)}>{selected.includes(p.id)&&<span aria-hidden="true">✓ </span>}{p.name}</Button>)}</div>
+      <div className="person-options">{people.map(p=><Button key={p.id} variant="outline" className={`person-chip ${personColor(people.findIndex(person => person.id === p.id))}`} aria-pressed={selected.includes(p.id)} onClick={()=>s.togglePerson(item.id,p.id)}>{selected.includes(p.id)&&<span aria-hidden="true">✓ </span>}{p.name}</Button>)}</div>
       <Button variant="ghost" className="everyone" onClick={()=>s.assignEveryone(item.id)}>Everyone</Button>
       {!selected.length&&<p className="muted">Choose at least one friend</p>}
     </>:<>
