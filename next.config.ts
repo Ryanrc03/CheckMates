@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["127.0.0.1"],
+  // Phones on the LAN open the dev server by this machine's 10.0.0.x address. Next 16 answers the HMR socket and dev fonts with 403 for any host not listed here, and the page then never hydrates (it stays on "Getting your table ready…").
+  allowedDevOrigins: ["127.0.0.1", "10.0.0.*"],
   devIndicators: false,
   // Model bundle paths carry their version, so they may be cached forever; the manifest must always revalidate.
   async headers() {

@@ -12,7 +12,7 @@ export function OfflineData() {
   const [rows, setRows] = useState<BundleStatus[] | null>(null); const [error, setError] = useState<string | null>(null); const [generation, setGeneration] = useState(0); // Remove bumps generation to reload; the lint rule set-state-in-effect rejects calling a local async refresh() from the effect
   useEffect(() => {
     let active = true;
-    void Promise.all(BUNDLES.map(id => getBundleStatus(id))).then(statuses => { if (!active) return; setRows(statuses); setError(null); }).catch(() => { if (!active) return; setError("Offline data status is unavailable right now."); setRows([]); });
+    void Promise.all(BUNDLES.map(id => getBundleStatus(id))).then(statuses => { if (!active) return; setRows(statuses); setError(null); }).catch((failure: unknown) => { if (!active) return; setError(failure instanceof Error ? failure.message : "Offline data status is unavailable right now."); setRows([]); });
     return () => { active = false; };
   }, [generation]);
   return <details className="offline-data disclosure"><summary>Offline data<ChevronDown className="disclosure-icon" aria-hidden="true"/></summary>

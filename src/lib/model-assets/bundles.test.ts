@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
-import { ensureBundle, getBundleStatus, purgeExpiredBundles, removeBundle } from "./bundles";
+import { INSECURE_CONTEXT_MESSAGE, browserEnv, ensureBundle, getBundleStatus, purgeExpiredBundles, removeBundle } from "./bundles";
 import { resetManifestCache } from "./manifest";
 import { readRecords, writeRecords } from "./records";
 import type { AssetEnv, ModelAssetsManifest, ModelBundleId } from "./types";
@@ -110,5 +110,17 @@ describe("removeBundle / purgeExpiredBundles", () => {
     expect(await env.fakeCaches.keys()).toEqual([]); expect(await purgeExpiredBundles({ env })).toEqual([]);
     await ensureBundle("translate-enzh", { env }); await removeBundle("translate-enzh", env); expect((await getBundleStatus("translate-enzh", env)).cached).toBe(false);
     expect(await env.fakeCaches.keys()).toEqual([]); // removal must not be undone by the status refresh that follows it
+  });
+});
+describe("browserEnv", () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+  it("explains that plain http has no Cache API instead of failing on caches.open", async () => {
+    vi.stubGlobal("window", { localStorage: new Map(), location: { origin: "http://10.0.0.217:3000" } }); vi.stubGlobal("caches", undefined);
+    expect(() => browserEnv()).toThrow(INSECURE_CONTEXT_MESSAGE);
+    await expect(ensureBundle("ocr-precise")).rejects.toThrow(INSECURE_CONTEXT_MESSAGE); // default-parameter failure must reject, not throw synchronously
+  });
+  it("returns the browser caches when they exist", () => {
+    const caches = new FakeCaches(); vi.stubGlobal("window", { localStorage: new Map(), location: { origin: "https://example.test" } }); vi.stubGlobal("caches", caches);
+    expect(browserEnv().caches).toBe(caches); expect(browserEnv().origin).toBe("https://example.test");
   });
 });

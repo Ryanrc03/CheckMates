@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "dev:https": "next dev --experimental-https --experimental-https-key certificates/dev-key.pem --experimental-https-cert certificates/dev-cert.pem",
     "prepare:ocr": "node scripts/prepare-ocr-assets.mjs",
     "prepare:models": "node scripts/prepare-model-assets.mjs",
     "predev": "npm run prepare:ocr && npm run prepare:models",

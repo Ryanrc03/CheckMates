@@ -2,6 +2,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Plus, Trash2, RotateCw, ArrowRight, ChevronDown, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { newId } from "@/lib/id";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { TranslationControls } from "@/components/translation/translation-controls";
@@ -75,7 +76,7 @@ export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, s
           <Button type="button" className="remove-item text-muted-foreground" variant="ghost" size="icon" aria-label={`Remove ${item.name || `item ${index + 1}`}`} onClick={() => setItems(items.filter(i => i.id !== item.id))}><Trash2 aria-hidden="true"/></Button>
           <div className="item-extra"><DishLabel id={item.id} originalName={item.name}/>{error(`name-${item.id}`)}{error(`price-${item.id}`)}{item.receiptDetails&&<ReceiptLineDetails name={item.name} details={item.receiptDetails} onDiscountChoice={choice=>chooseDiscount(item.id,choice)}/>}</div>
         </div>)}
-        <Button type="button" variant="outline" className="add-item border-dashed" onClick={() => setItems([...items, { id: crypto.randomUUID(), name: "", price: "", allocation: {mode:"equal",personIds:[]} }])}><Plus aria-hidden="true"/> Add item</Button>
+        <Button type="button" variant="outline" className="add-item border-dashed" onClick={() => setItems([...items, { id: newId(), name: "", price: "", allocation: {mode:"equal",personIds:[]} }])}><Plus aria-hidden="true"/> Add item</Button>
         <div className="money-grid totals-line"><span>Items subtotal</span><b className="money">{formatMoney(subtotal)}</b></div>
         {([["tax", "Tax", tax, setTax], ["charged-tip", "Tip already on receipt", chargedTip, setChargedTip], ["added-tip", "Added tip", addedTip, setAddedTip]] as const).map(([id, label, value, setter]) => <div key={id} className="money-grid extras-row"><label htmlFor={id}>{label}{id === "added-tip" && <small>Only what you want to add now</small>}</label><Input id={id} className="money" inputMode="decimal" value={value} aria-invalid={!!errors[id]} aria-describedby={errors[id] ? `${id}-error` : undefined} onChange={e => setter(e.target.value)}/>{error(id)}</div>)}
         <div className="money-grid totals-line grand-total"><span>Edited total</span><b className="money">{formatMoney(total)}</b></div>

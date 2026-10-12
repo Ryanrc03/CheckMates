@@ -46,3 +46,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /.private/
+
+# local https dev certificates (next dev --experimental-https)
+certificates/
