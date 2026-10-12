@@ -118,3 +118,5 @@ Root causes: (1) Next 16 answers the HMR socket and dev fonts with 403 for any h
 | Built-in browser, http://10.0.0.68:3100 (fresh origin, insecure context) | Offline data shows the secure-connection message; sample bill → add item → Add friends → add a friend works without errors |
 
 Limit: the first real-iPhone run, over https in development or against production after deployment, is still the acceptance test for the precise engine on a phone.
+
+Deployment: PR [#8](https://github.com/Ryanrc03/CheckMates/pull/8) merged as `9ede6ee`; production redeployed from `main` as `dpl_3CDwWPBg8LWZEmW7xKxoKTsJyzck` (ready). Live checks at https://checkmates-pi.vercel.app: homepage and `/models/manifest.json` HTTP 200, precise runtime `ort-wasm-simd-threaded.wasm` HTTP 200 with `Cache-Control: public, max-age=31536000, immutable`, and the homepage hydrates in the built-in browser with no console errors. The first real-iPhone run against this deployment is still the acceptance test for the precise engine on a phone.
