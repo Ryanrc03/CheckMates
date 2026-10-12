@@ -1,6 +1,9 @@
 /* eslint-disable @next/next/no-img-element -- both previews are local browser blob URLs */
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/ui/notice";
 import { PhotoInput } from "@/components/home/home-step";
 import type { OcrEngine } from "@/lib/ocr/client";
 import type { Analysis } from "@/lib/receipt-image/analyze";
@@ -120,8 +123,8 @@ export function PhotoAdjustment({ file, originalUrl, initialAdjustment, engine, 
 
   return <section className="photo-adjustment">
     <div className="step-heading"><p className="eyebrow">FIRST, CHECK THE PHOTO</p><h1>Adjust your photo</h1><p>Keep every item, tax, and total inside the page.</p></div>
-    <p role="status" className="notice">{analysisStatus}</p>
-    {(error || fileError) && <p role="alert" className="notice">{error || fileError}</p>}
+    <Notice tone="info" role="status">{analysisStatus}</Notice>
+    {(error || fileError) && <Notice tone="error" role="alert">{error || fileError}</Notice>}
     <div className="adjustment-panels">
       <div><h2>Original</h2><div className="adjustment-image-wrap">
         <img src={orientedUrl ?? originalUrl} alt="Original receipt photo" />
@@ -129,22 +132,20 @@ export function PhotoAdjustment({ file, originalUrl, initialAdjustment, engine, 
       </div></div>
       <div><h2>After correction</h2><div className="adjustment-image-wrap"><img src={correctedUrl ?? orientedUrl ?? originalUrl} alt="Photo that will be used for recognition" onLoad={event => setLoadedPreviewUrl(event.currentTarget.currentSrc)} /></div></div>
     </div>
-    <div className="adjustment-controls">
-      <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = false; setError(null); setAnalysisStatus("Analyzing this photo…"); setAdjustment(previous => ({ ...previous, quarterTurns: (previous.quarterTurns + 1) % 4, corners: null, angle: 0 })); }}>Rotate 90°</Button>
-      <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = true; setError(null); setAnalysisStatus("Manual adjustment selected. Check the preview."); setAdjustment(previous => ({ ...previous, corners: previous.corners ?? fullCorners, angle: 0 })); }}>Adjust four corners</Button>
-      <label>Fine tune angle <input aria-label="Fine tune angle" type="number" min={-45} max={45} step="0.1" disabled={busy} value={adjustment.angle} onChange={event => { userEdited.current = true; setAnalysisStatus("Manual adjustment selected. Check the preview."); setAdjustment(previous => ({ ...previous, angle: Math.max(-45, Math.min(45, Number(event.target.value) || 0)) })); }} /> degrees</label>
-      <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = true; setError(null); setAnalysisStatus("Using the original photo."); setAdjustment(previous => ({ corners: null, angle: 0, quarterTurns: previous.quarterTurns })); }}>Use original photo</Button>
-      <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = true; setError(null); setAnalysisStatus("Using the original photo."); setAdjustment({ corners: null, angle: 0, quarterTurns: 0 }); }}>Reset adjustments</Button>
+    <div className="paper"><p className="field-label">Adjust</p>
+      <div className="tool-grid">
+        <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = false; setError(null); setAnalysisStatus("Analyzing this photo…"); setAdjustment(previous => ({ ...previous, quarterTurns: (previous.quarterTurns + 1) % 4, corners: null, angle: 0 })); }}>Rotate 90°</Button>
+        <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = true; setError(null); setAnalysisStatus("Manual adjustment selected. Check the preview."); setAdjustment(previous => ({ ...previous, corners: previous.corners ?? fullCorners, angle: 0 })); }}>Adjust four corners</Button>
+        <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = true; setError(null); setAnalysisStatus("Using the original photo."); setAdjustment(previous => ({ corners: null, angle: 0, quarterTurns: previous.quarterTurns })); }}>Use original photo</Button>
+        <Button type="button" variant="outline" disabled={!image || busy} onClick={() => { userEdited.current = true; setError(null); setAnalysisStatus("Using the original photo."); setAdjustment({ corners: null, angle: 0, quarterTurns: 0 }); }}>Reset adjustments</Button>
+      </div>
+      <label className="angle-field">Fine tune angle <Input aria-label="Fine tune angle" className="w-22" type="number" min={-45} max={45} step="0.1" disabled={busy} value={adjustment.angle} onChange={event => { userEdited.current = true; setAnalysisStatus("Manual adjustment selected. Check the preview."); setAdjustment(previous => ({ ...previous, angle: Math.max(-45, Math.min(45, Number(event.target.value) || 0)) })); }} /> degrees</label>
     </div>
-    <fieldset className="engine-choice"><legend>Recognition engine</legend>
-      <label className="checkbox-label"><input type="radio" name="ocr-engine" value="standard" disabled={busy} checked={engine === "standard"} onChange={() => onEngineChange("standard")} /><span>Standard (fast)</span></label>
-      <label className="checkbox-label"><input type="radio" name="ocr-engine" value="precise" disabled={busy} checked={engine === "precise"} onChange={() => onEngineChange("precise")} /><span>Precise <small>first use downloads about 45 MB; stays in this browser</small></span></label>
-    </fieldset>
-    <div className="adjustment-actions">
-      <Button type="button" disabled={!image || busy || !previewReady || analysisStatus === "Analyzing this photo…"} onClick={() => void confirm()}>{busy ? "Preparing photo…" : engine === "precise" ? "Use this photo and recognize (precise)" : "Use this photo and recognize"}</Button>
-      <PhotoInput onSelect={onSelect} label="Choose another receipt photo" />
-      <Button type="button" variant="ghost" onClick={onBack}>Back</Button>
-      <Button type="button" variant="ghost" onClick={onManual}>Enter items manually</Button>
-    </div>
+    <div className="paper"><fieldset className="choice-group"><legend className="field-label">Recognition engine</legend>
+      <label className={`choice-card${engine === "standard" ? " selected" : ""}`}><input type="radio" name="ocr-engine" value="standard" disabled={busy} checked={engine === "standard"} onChange={() => onEngineChange("standard")} /><span><b>Standard (fast)</b></span></label>
+      <label className={`choice-card${engine === "precise" ? " selected" : ""}`}><input type="radio" name="ocr-engine" value="precise" disabled={busy} checked={engine === "precise"} onChange={() => onEngineChange("precise")} /><span><b>Precise</b> <small>first use downloads about 45 MB; stays in this browser</small></span></label>
+    </fieldset></div>
+    <div className="adjustment-secondary"><PhotoInput onSelect={onSelect} label="Choose another receipt photo" /><Button type="button" variant="ghost" onClick={onManual}>Enter items manually</Button></div>
+    <div className="bottom-actions"><div className="bottom-actions-inner"><Button type="button" variant="outline" onClick={onBack}>Back</Button><Button type="button" disabled={!image || busy || !previewReady || analysisStatus === "Analyzing this photo…"} onClick={() => void confirm()}>{busy ? "Preparing photo…" : engine === "precise" ? "Use this photo and recognize (precise)" : "Use this photo and recognize"} <ArrowRight aria-hidden="true"/></Button></div></div>
   </section>;
 }

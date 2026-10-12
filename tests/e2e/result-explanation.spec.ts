@@ -118,8 +118,9 @@ test("result explanation keeps long item and friend names readable on mobile", a
   await page.getByRole("button", { name: "Edit assignments" }).click();
   await page.getByRole("button", { name: "Back to friends" }).click();
   const longName = "A very long friend name that should wrap without cutting off the amount";
-  await page.getByLabel("Rename A").fill(longName);
-  await page.getByLabel(`Rename A`).blur();
+  await page.getByRole("button", { name: "Rename A" }).click();
+  await page.getByLabel("New name for A").fill(longName);
+  await page.getByLabel("New name for A").blur();
   await page.getByRole("button", { name: "Back to receipt" }).click();
   const longItem = "A very long restaurant item name with modifiers and preparation notes";
   await page.getByLabel("Item 1 name").fill(longItem);

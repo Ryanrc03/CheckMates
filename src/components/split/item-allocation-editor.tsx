@@ -1,3 +1,4 @@
+import { Check, ChevronDown, Users } from "lucide-react";
 import type { ItemAllocation, Person, ReceiptItem } from "@/types/bill";
 import type { AllocationEdit } from "@/types/receipt";
 import { allocateItemCents, allocationPersonIds, validateItemAllocation } from "@/lib/item-allocation";
@@ -5,7 +6,7 @@ import { useBillStore } from "@/store/useBillStore";
 import { formatMoney } from "@/lib/money";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { personColor } from "../people/people-step";
+import { personColor } from "../people/person-style";
 
 function fromItem(item: ReceiptItem, people: Person[]): AllocationEdit {
   const a = item.allocation;
@@ -32,15 +33,14 @@ export function ItemAllocationEditor({item,people}:{item:ReceiptItem;people:Pers
   };
   const selected=allocationPersonIds(item.allocation);
   return <div className="allocation-editor">
-    <label className="split-method">Split method<select value={edit.mode} onChange={e=>mode(e.target.value as ItemAllocation["mode"])}><option value="equal">Equal</option><option value="ratio">Ratio</option><option value="quantity">Quantity</option></select></label>
+    <div className="split-method"><label htmlFor={`split-${item.id}`}>Split method</label><span className="select-wrap"><select id={`split-${item.id}`} value={edit.mode} onChange={e=>mode(e.target.value as ItemAllocation["mode"])}><option value="equal">Equal</option><option value="ratio">Ratio</option><option value="quantity">Quantity</option></select><ChevronDown aria-hidden="true"/></span></div>
     {edit.mode==="equal"?<>
-      <div className="person-options">{people.map(p=><Button key={p.id} variant="outline" className={`person-chip ${personColor(p.id)}`} aria-pressed={selected.includes(p.id)} onClick={()=>s.togglePerson(item.id,p.id)}>{selected.includes(p.id)&&<span aria-hidden="true">✓ </span>}{p.name}</Button>)}</div>
-      <Button variant="ghost" className="everyone" onClick={()=>s.assignEveryone(item.id)}>Everyone</Button>
-      {!selected.length&&<p className="muted">Choose at least one friend</p>}
+      <div className="chip-list">{people.map((p,i)=><button key={p.id} type="button" className={`chip ${personColor(i)}`} aria-pressed={selected.includes(p.id)} onClick={()=>s.togglePerson(item.id,p.id)}>{selected.includes(p.id)?<Check aria-hidden="true"/>:<span className="chip-dot" aria-hidden="true"/>}{p.name}</button>)}<button type="button" className="chip chip-everyone" onClick={()=>s.assignEveryone(item.id)}><Users aria-hidden="true"/>Everyone</button></div>
+      {!selected.length&&<p className="assign-hint">Choose at least one friend</p>}
     </>:<>
-      {edit.mode==="quantity"&&<div className="quantity-heading"><label>Total units<Input inputMode="numeric" value={edit.totalUnits} onChange={e=>change({totalUnits:e.target.value})}/></label><label>Unit label<Input value={edit.unitLabel} onChange={e=>change({unitLabel:e.target.value})}/></label></div>}
+      {edit.mode==="quantity"&&<div className="quantity-heading"><label className="share-field"><span className="field-label">Total units</span><Input inputMode="numeric" value={edit.totalUnits} onChange={e=>change({totalUnits:e.target.value})}/></label><label className="share-field"><span className="field-label">Unit label</span><Input value={edit.unitLabel} onChange={e=>change({unitLabel:e.target.value})}/></label></div>}
       <p className="muted">{edit.mode==="quantity"?"Set the number of pieces or servings to share. Receipt quantity does not set this automatically.":"Use relative whole-number weights. 2:1 means twice the share."}</p>
-      <div className="share-inputs">{people.map(p=><label key={p.id}>{p.name}<Input aria-label={`${edit.mode==="quantity"?"Units":"Weight"} for ${p.name}`} inputMode="numeric" value={edit.entries.find(e=>e.personId===p.id)?.value??"0"} onChange={e=>change({entries:people.map(person=>({personId:person.id,value:person.id===p.id?e.target.value:edit.entries.find(entry=>entry.personId===person.id)?.value??"0"}))})}/></label>)}</div>
+      <div className="share-inputs">{people.map(p=><label key={p.id} className="share-field"><span className="field-label">{p.name}</span><Input aria-label={`${edit.mode==="quantity"?"Units":"Weight"} for ${p.name}`} inputMode="numeric" value={edit.entries.find(e=>e.personId===p.id)?.value??"0"} onChange={e=>change({entries:people.map(person=>({personId:person.id,value:person.id===p.id?e.target.value:edit.entries.find(entry=>entry.personId===person.id)?.value??"0"}))})}/></label>)}</div>
       {message&&<p className="field-error" role="status">{message}</p>}
       {pending&&<p className="muted">Apply the pending shares before viewing the result.</p>}
       <Button variant="outline" disabled={!allocation || !pending} onClick={()=>allocation&&s.applyAllocation(item.id,allocation)}>Apply shares</Button>

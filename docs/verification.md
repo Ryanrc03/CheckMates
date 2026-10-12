@@ -98,3 +98,23 @@ Trigger: on an iPhone the deployed precise engine killed the tab ("Can't open th
 Limit: still desktop WebKit, not a phone. The first real-iPhone run after deployment is the acceptance test.
 
 Deployment: PR [#7](https://github.com/Ryanrc03/CheckMates/pull/7) merged as `9cf5627`; production redeployed from `main` as `dpl_4ojemgFFPqc2q9oi8eo2wcriGayk` (ready). The live manifest serves `ppocrv5m-ort1.24.3-wasm`, both runtime files return HTTP 200, and the WebKit precise flow against https://checkmates-pi.vercel.app finished in 9 s with the correct prices and +0.81 GB peak.
+
+## 2026-10-11 UI visual alignment + LAN dev fixes (branch `feat/ui-visual-alignment`)
+
+Environment: Windows 11, Node v24.12.0, npm 11.6.2, Next.js 16.3.6 (Turbopack), Playwright 1.58.2 (Chromium + WebKit). Desktop verification plus the built-in browser at the machine's LAN addresses; no real-phone run yet.
+
+Trigger: on an iPhone, opening `next dev` by LAN address (http://10.0.0.217:3000) stayed on "Getting your table ready…", and once that was fixed the precise engine failed with "Cannot read properties of undefined (reading 'open')". The UI visual alignment work on this branch is recorded in [2026-10-11-ui-visual-alignment.md](validation/2026-10-11-ui-visual-alignment.md).
+
+Root causes: (1) Next 16 answers the HMR socket and dev fonts with 403 for any host not in `allowedDevOrigins` (only 127.0.0.1 was listed) and the page then never hydrates; `10.0.0.*` is now allowed. (2) Plain http on a LAN IP is not a secure context: `caches`, `crypto.subtle` and `crypto.randomUUID` are undefined, so precise recognition, translation and offline data cannot run there at all (browser limitation, production https unaffected), and `crypto.randomUUID` made adding an item or a friend throw. `browserEnv()` now fails with a message that says to open the site over https, ids come from `lib/id.ts`, and `npm run dev:https` serves the dev server with a local certificate (gitignored `certificates/`).
+
+| Check | Result |
+| --- | --- |
+| `npx eslint` on the changed files | PASS |
+| `npx tsc --noEmit` | PASS |
+| `npm test` | PASS, 209 tests across 33 files |
+| `npm run build` | PASS |
+| `E2E_PRODUCTION=1 npx playwright test` | PASS, 71 passed + 6 skipped (private photos); `precise-ocr` passed on chromium and webkit |
+| Built-in browser, http://10.0.0.217:3100 | Blocked before the config change (403 on `/_next/hmr` and `/__nextjs_font/*`, page never hydrated); hydrates after it |
+| Built-in browser, http://10.0.0.68:3100 (fresh origin, insecure context) | Offline data shows the secure-connection message; sample bill → add item → Add friends → add a friend works without errors |
+
+Limit: the first real-iPhone run, over https in development or against production after deployment, is still the acceptance test for the precise engine on a phone.

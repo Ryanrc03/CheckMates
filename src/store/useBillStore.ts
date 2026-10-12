@@ -6,6 +6,7 @@ import { createMockBill, emptyBill } from "@/lib/receipt";
 import { availableStep, isBill, isDraft, receiptReady, migrateSession, validCents } from "@/lib/session";
 
 import { allocationPersonIds, validateItemAllocation } from "@/lib/item-allocation";
+import { newId } from "@/lib/id";
 
 const initial = (): BillSession => ({ bill: emptyBill(), step: "home", source: null, fileName: null, receiptDraft: null, receiptConfirmed: false, addedTipCents: 0, reviewNote: "", receiptEdit: null, allocationEdits: {}, unassignedDiscountsReviewed: false });
 const KEY = "bitesplit-session";
@@ -73,10 +74,10 @@ export function createBillStore(storage: StateStorage) {
         change({ bill: structuredClone(bill), allocationEdits, receiptEdit: null, receiptConfirmed: true, step: "people", ...(review ?? {}) });
       },
       updateItem: (id, patch) => update(b => ({ ...b, items: b.items.map(i => i.id === id ? { ...i, ...patch } : i) })),
-      addItem: () => update(b => ({ ...b, items: [...b.items, { id: crypto.randomUUID(), name: "", priceCents: 0, allocation: { mode: "equal", personIds: [] } }] })),
+      addItem: () => update(b => ({ ...b, items: [...b.items, { id: newId(), name: "", priceCents: 0, allocation: { mode: "equal", personIds: [] } }] })),
       removeItem: id => { const edits={...get().allocationEdits};delete edits[id];change({bill:{...get().bill,items:get().bill.items.filter(i=>i.id!==id)},allocationEdits:edits}); },
       setExtras: (taxCents, tipCents) => { if (validCents(taxCents) && validCents(tipCents)) update(b => ({ ...b, taxCents, tipCents })); },
-      addPerson: name => { if (name.trim()) update(b => ({ ...b, people: [...b.people, { id: crypto.randomUUID(), name: name.trim() }] })); },
+      addPerson: name => { if (name.trim()) update(b => ({ ...b, people: [...b.people, { id: newId(), name: name.trim() }] })); },
       renamePerson: (id, name) => { if (name.trim()) update(b => ({ ...b, people: b.people.map(p => p.id === id ? { ...p, name: name.trim() } : p) })); },
       removePerson: id => {
         const bill=get().bill;

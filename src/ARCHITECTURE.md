@@ -23,10 +23,10 @@ components/
   home/               Step 1: take/upload photo, sample bill, manual entry. Also exports PhotoInput.
   receipt/            photo-adjustment.tsx (corner/angle/rotate UI before OCR),
                       receipt-step.tsx (Step 2 review form), receipt-line-details.tsx.
-  people/             Step 3. Also exports personColor(id).
+  people/             Step 3. person-style.ts = personColor(index) by bill.people order, personInitial(name).
   split/              Step 4. item-allocation-editor.tsx = equal / ratio / quantity editor.
   result/             Step 5. person-breakdown.tsx (cent-by-cent trace), share-composition.tsx (bar).
-  ui/                 shadcn/ui primitives (button, input, card, ...). Generic; no business logic.
+  ui/                 shadcn/ui primitives (button, input, ...) plus notice.tsx (Notice with info/warning/error/success tones). Generic; no business logic.
 store/
   useBillStore.ts     Zustand store: every bill mutation, persistence, hydration, reset.
 lib/                  Pure logic (no React). Everything here is unit tested.
@@ -130,6 +130,19 @@ UI: `components/receipt/photo-adjustment.tsx`. Adjustments are kept per `File` i
 | Financial field misread | `financial-evidence.ts` / `financial-image.ts`; check `docs/validation/2026-10-06-financial-ocr.md` first |
 | New persisted field | `types/receipt.ts` BillSession → `useBillStore.ts` persist/initial → `session.ts` restoreSession |
 | Result display | `components/result/*`; the data comes from `explainSplitBill` |
+| Colors, type, spacing, a component's look | `app/globals.css` `:root` tokens and `@layer components`; read "Styling" first |
+
+## Styling
+
+Spec: [UI visual alignment design](../docs/superpowers/specs/2026-10-11-checkmates-ui-visual-alignment-design.md).
+
+- Tokens live only in `:root` in `app/globals.css`: colors, six person colors, font sizes (`--fs-*`), radii (`--r-*`), shadows, layout widths. Add a token instead of a literal. `app/globals.test.ts` fails on color literals outside `:root`, font sizes under 12px, unlayered rules and `[data-slot` selectors.
+- Order: `@layer base` (element defaults, the single focus outline) → `@layer components` (semantic classes: `.paper`, `.notice`, `.chip`, `.money-grid`, `.bottom-actions`, `.disclosure`, ...) → Tailwind utilities. Unlayered CSS would beat every utility; do not write it.
+- shadcn primitives in `components/ui/` own their look through cva. Pages adjust them with `variant`, `size` or utility `className` (merged by `cn`), never with descendant selectors.
+- Tailwind font sizes and radii keep default names (`text-xs/sm/base/lg`, `rounded-md/lg`) with our values; `cn` is tailwind-merge compatible and would read an unknown `text-*` name as a color.
+- One tactile primary button per screen: the forward action in `.bottom-actions`. Touch targets are at least 44px. In `.money-grid` cards every amount has `.money` and shares one right edge.
+- Person colors come from `personColor(index)` and are never the only cue; names are always visible.
+- e2e hooks: `.item-editor`, `.dish-translation`, `.share-composition`, `.breakdown-fee`, `.person-result`, `.receipt-editor .money`, `data-testid="share-*"` and `"bill-total"`. `tests/e2e/visual-alignment.spec.ts` checks the money column, desktop column alignment, 12px text, 44px targets, friend rows and overflow.
 
 ## Tests
 

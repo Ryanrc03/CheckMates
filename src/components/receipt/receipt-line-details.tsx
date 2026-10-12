@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import type { ReceiptDetails } from "@/types/receipt-details";
 import { formatMoney } from "@/lib/money";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,6 @@ export function ReceiptLineDetails({name,details,onDiscountChoice}:{name:string;
    <p>Choose whether the printed line amount already includes the listed discount. These choices use the printed amount.</p>
    <div className="row"><Button type="button" variant="outline" onClick={()=>onDiscountChoice("included")}>Use printed line total</Button><Button type="button" variant="outline" onClick={()=>onDiscountChoice("subtract")}>Subtract listed discount</Button></div>
   </div>}
-  <details><summary>Receipt evidence for {name}</summary><pre>{details.sourceLines.join("\n")}</pre></details>
+  <details className="disclosure"><summary>Receipt evidence for {name}<ChevronDown className="disclosure-icon" aria-hidden="true"/></summary><pre>{details.sourceLines.join("\n")}</pre></details>
  </div>;
 }

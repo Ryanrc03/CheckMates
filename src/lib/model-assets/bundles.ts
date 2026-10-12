@@ -3,7 +3,9 @@ import { readRecords, writeRecords } from "./records";
 import type { AssetEnv, BundleHandle, BundleProgress, BundleStatus, ModelBundleId, ModelBundleManifest } from "./types";
 export const CACHE_PREFIX = "cm-models-";
 export const cacheNameFor = (id: ModelBundleId, version: string) => `${CACHE_PREFIX}${id}-v${version}`;
-export function browserEnv(): AssetEnv { return { caches: globalThis.caches, storage: window.localStorage, fetch: (input, init) => fetch(input, init), origin: window.location.origin, now: () => Date.now() }; }
+export const INSECURE_CONTEXT_MESSAGE = "Precise recognition, translation and offline data need a secure connection. Open CheckMates over https (or on localhost) and try again.";
+/** The Cache API exists only in secure contexts; over plain http on a LAN `globalThis.caches` is undefined and every bundle call would die on `caches.open`. */
+export function browserEnv(): AssetEnv { const caches = globalThis.caches; if (!caches) throw new Error(INSECURE_CONTEXT_MESSAGE); return { caches, storage: window.localStorage, fetch: (input, init) => fetch(input, init), origin: window.location.origin, now: () => Date.now() }; }
 const abortError = () => new DOMException("Download canceled.", "AbortError");
 async function sha256Hex(buffer: ArrayBuffer): Promise<string> { const digest = await crypto.subtle.digest("SHA-256", buffer); return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join(""); }
 async function bundleCacheNames(env: AssetEnv, id: ModelBundleId): Promise<string[]> { return (await env.caches.keys()).filter(name => name.startsWith(`${CACHE_PREFIX}${id}-v`)); }
