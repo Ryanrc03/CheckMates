@@ -52,9 +52,14 @@ describe("readingProblem", () => {
 });
 describe("mergeReadings", () => {
   const reading = (items: LlmItem[], subtotal: string) => toDraft(receipt(items, { subtotal }), "m");
-  it("prefers a balanced second reading as is", () => {
-    const second = reading([line("A", "4.00"), line("B", "12.90")], "16.90");
-    expect(mergeReadings(reading([line("A", "4.00")], "16.90"), second)).toBe(second);
+  it("keeps a balanced second reading but lists every change from the first", () => {
+    const { draft } = mergeReadings(reading([line("A", "4.00")], "16.90"), reading([line("A", "4.00"), line("B", "12.90")], "16.90"));
+    expect(draft.items.map(i => [i.name, i.priceCents])).toEqual([["A", 400], ["B", 1290]]); expect(draft.warnings).toEqual(["The double-check added B ($12.90). Check it against the photo."]);
+  });
+  it("lists changed and removed lines of a balanced second reading, and nothing when identical", () => {
+    const { draft } = mergeReadings(reading([line("A", "4.00"), line("C", null), line("D", "1.00")], "10.00"), reading([line("A", "9.00"), line("C", "1.00")], "10.00"));
+    expect(draft.warnings).toEqual(["The double-check changed A from $4.00 to $9.00. Check it against the photo.", "The double-check changed C from amount unreadable to $1.00. Check it against the photo.", "The double-check removed D ($1.00). Check it against the photo."]);
+    const same = reading([line("A", "4.00")], "4.00"); expect(mergeReadings(same, structuredClone(same))).toEqual(same);
   });
   it("blanks amounts the readings disagree on and lists lines only one reading found", () => {
     const { draft } = mergeReadings(reading([line("Pad Thai", "12.90"), line("Tea", "3.00")], "17.90"), reading([line("Pad Thai", "13.00"), line("Rice", "2.00")], "17.90"));

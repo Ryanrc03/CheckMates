@@ -18,7 +18,7 @@ describe("cloud recognizer", () => {
     const { request, recognize } = make(reply([["Milk Tea", "4.00"]], "16.90"), reply([["Milk Tea", "4.00"], ["Pad Thai", "12.90"]], "16.90"));
     const { draft } = await recognize(new Blob(["x"]), options());
     expect(request).toHaveBeenCalledTimes(2); expect(request.mock.calls[1][2].recheck).toContain("the printed subtotal is $16.90");
-    expect(draft.items.map(i => i.name)).toEqual(["Milk Tea", "Pad Thai"]); expect(draft.warnings).toEqual([]);
+    expect(draft.items.map(i => i.name)).toEqual(["Milk Tea", "Pad Thai"]); expect(draft.warnings).toEqual(["The double-check added Pad Thai ($12.90). Check it against the photo."]);
   });
   it("keeps the first reading with a warning when the re-read fails", async () => {
     const { recognize } = make(reply([["Milk Tea", "4.00"]], "16.90"), new Error("Cloud recognition is busy or over its quota."));

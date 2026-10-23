@@ -43,9 +43,20 @@ export function readingProblem(draft: ReceiptDraft): string | null {
   if (draft.printedTotalCents !== null && draft.taxCents !== null) { const expected = sum + draft.taxCents + (draft.tipCents ?? 0); return expected === draft.printedTotalCents ? null : `Its item amounts plus tax and tip add up to ${formatMoney(expected)}, but the printed total is ${formatMoney(draft.printedTotalCents)}.`; }
   return null;
 }
+/** A balancing recheck replaces the first reading, so every difference is listed for the user to check against the photo. */
+function listChanges(first: ReceiptDraft, second: ReceiptDraft): ReceiptDraft {
+  const draft = structuredClone(second); const used = new Set<number>(); const amount = (cents: number | null) => cents === null ? "amount unreadable" : formatMoney(cents);
+  for (const item of second.items) {
+    const index = first.items.findIndex((other, k) => !used.has(k) && key(other.name) === key(item.name));
+    if (index < 0) { draft.warnings.push(`The double-check added ${item.name} (${amount(item.priceCents)}). Check it against the photo.`); continue; }
+    used.add(index); const was = first.items[index].priceCents; if (was !== item.priceCents) draft.warnings.push(`The double-check changed ${item.name} from ${amount(was)} to ${amount(item.priceCents)}. Check it against the photo.`);
+  }
+  first.items.forEach((other, k) => { if (!used.has(k)) draft.warnings.push(`The double-check removed ${other.name} (${amount(other.priceCents)}). Check it against the photo.`); });
+  return draft;
+}
 /** Neither reading balances: keep the recheck, blank amounts the two disagree on, and list what only one of them saw. */
 export function mergeReadings(first: CloudReading, second: CloudReading): CloudReading {
-  if (readingProblem(second.draft) === null) return second;
+  if (readingProblem(second.draft) === null) return { draft: listChanges(first.draft, second.draft), translations: second.translations };
   if (!second.draft.items.length) { const kept = structuredClone(first.draft); kept.warnings.push("The double-check found no items; showing the first reading. Compare every line with the photo."); return { draft: kept, translations: first.translations }; }
   const draft = structuredClone(second.draft); const used = new Set<number>();
   for (const item of draft.items) {
