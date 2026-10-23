@@ -45,3 +45,41 @@ describe("mergeReadings", () => {
     expect(draft.warnings).toEqual(["Two readings disagree on the amount for Pad Thai ($12.90 or $13.00). Enter the printed amount.", "Only the second reading found Rice. Check it against the photo.", "The first reading also found Tea ($3.00). Add it if it is on the receipt."]);
   });
 });
+describe("review fixes", () => {
+  const reading = (items: LlmItem[], subtotal: string) => toDraft(receipt(items, { subtotal }), "m");
+  it("keeps the first reading when the recheck finds no items", () => {
+    const first = reading([line("A", "4.00")], "16.90");
+    const { draft } = mergeReadings(first, reading([], "16.90"));
+    expect(draft.items.map(i => [i.name, i.priceCents])).toEqual([["A", 400]]);
+    expect(draft.warnings).toEqual(["The double-check found no items; showing the first reading. Compare every line with the photo."]);
+  });
+  it("matches non-Latin names across readings", () => {
+    const { draft } = mergeReadings(reading([line("宫保鸡丁", "12.00"), line("麻婆豆腐", "9.00")], "27.00"), reading([line("酸辣汤", "6.00"), line("麻婆豆腐", "9.00")], "27.00"));
+    expect(draft.items.map(i => [i.name, i.priceCents])).toEqual([["酸辣汤", 600], ["麻婆豆腐", 900]]);
+    expect(draft.warnings).toContain("Only the second reading found 酸辣汤. Check it against the photo.");
+    expect(draft.warnings).toContain("The first reading also found 宫保鸡丁 ($12.00). Add it if it is on the receipt.");
+  });
+  it("warns about unreadable subtotal, tax and tip instead of dropping them", () => {
+    const { draft } = toDraft(receipt([line("A", "4.00")], { subtotal: "4.0?", tax: "0.3?", tip: "1.0?" }), "m");
+    expect([draft.printedSubtotalCents, draft.taxCents, draft.tipCents]).toEqual([null, null, null]);
+    expect(draft.warnings).toEqual(["Could not read the printed subtotal \"4.0?\". Enter it from the photo.", "Could not read the printed tax \"0.3?\". Enter it from the photo.", "Could not read the printed tip \"1.0?\". Enter it from the photo."]);
+    expect(isDraft(draft)).toBe(true);
+  });
+  it("reads thousands separators but not a decimal comma", () => {
+    expect(toDraft(receipt([line("A", "1,234.50")]), "m").draft.items[0].priceCents).toBe(123450);
+    const { draft } = toDraft(receipt([line("A", "12,90")]), "m");
+    expect(draft.items[0].priceCents).toBeNull(); expect(draft.warnings).toEqual(["Could not read the amount \"12,90\" for A. Enter it from the photo."]);
+  });
+  it("does not double the minus sign of a discount in rawText", () => {
+    const { draft } = toDraft(receipt([line("A", "4.00")], { discounts: [{ printedText: "Coupon", amount: "-1.00", itemIndex: 0 }] }), "m");
+    expect(draft.rawText).toContain("Coupon  -1.00"); expect(draft.rawText).not.toContain("--");
+  });
+  it("fills an unreadable amount from the other reading", () => {
+    const { draft } = mergeReadings(reading([line("A", "4.00"), line("B", "2.00")], "9.00"), reading([line("A", null), line("B", "2.00")], "9.00"));
+    expect(draft.items.map(i => i.priceCents)).toEqual([400, 200]); expect(draft.warnings).toEqual(["Only one reading could read the amount for A. Check it against the photo."]);
+  });
+  it("pairs duplicate names in order", () => {
+    const { draft } = mergeReadings(reading([line("Tea", "3.00"), line("Tea", "3.00")], "9.00"), reading([line("Tea", "3.00"), line("Tea", "3.00"), line("Rice", "2.00")], "9.00"));
+    expect(draft.items.map(i => i.priceCents)).toEqual([300, 300, 200]); expect(draft.warnings).toEqual(["Only the second reading found Rice. Check it against the photo."]);
+  });
+});
