@@ -27,7 +27,9 @@ export function toDraft(reply: LlmReceipt, model: string): CloudReading {
   }
   const rawText = [...reply.items.map(i => `${i.printedText.replace(/\n/g, " / ")}  ${i.lineTotal ?? "?"}`), ...reply.discounts.map(d => `${d.printedText}  -${d.amount?.replace(/^-/, "") ?? "?"}`), ...(["subtotal", "tax", "tip", "total"] as const).filter(k => reply[k] !== null).map(k => `${k}  ${reply[k]}`), `(read by ${model})`].join("\n");
   const draft: ReceiptDraft = { items: slots.filter((i): i is DraftItem => i !== null), rawText, taxCents: cents(reply.tax), tipCents: reply.tip === null ? 0 : cents(reply.tip), printedSubtotalCents: cents(reply.subtotal), printedTotalCents: cents(reply.total), warnings, ...(unassignedDiscounts.length ? { unassignedDiscounts } : {}) };
-  const translations = reply.items.filter(i => i.name.trim() && CJK.test(i.nameZh) && !invents(i.nameZh, [i.name, i.printedText, ...i.modifiers].join(" ")) && i.nameZh.trim().length <= 60).map(i => ({ name: i.name.trim(), text: i.nameZh.trim() }));
+  const named = reply.items.filter(i => i.name.trim() && CJK.test(i.nameZh) && !invents(i.nameZh, [i.name, i.printedText.split("\n")[0]].join(" ")) && i.nameZh.trim().length <= 60);
+  const disagree = new Set(named.filter(i => named.some(o => key(o.name) === key(i.name) && o.nameZh.trim() !== i.nameZh.trim())).map(i => key(i.name))); const seen = new Set<string>(); // a repeated dish keeps one Chinese name, or none when its readings differ
+  const translations = named.filter(i => { const k = key(i.name); if (disagree.has(k) || seen.has(k)) return false; seen.add(k); return true; }).map(i => ({ name: i.name.trim(), text: i.nameZh.trim() }));
   return { draft, translations };
 }
 /** Why a reading cannot be trusted yet, phrased for the recheck request; null when it balances or nothing printed can check it. */

@@ -6,19 +6,23 @@ const line = (name: string, lineTotal: string | null, extra: Partial<LlmItem> = 
 const receipt = (items: LlmItem[], extra: Partial<LlmReceipt> = {}): LlmReceipt => ({ items, discounts: [], subtotal: null, tax: null, tip: null, total: null, uncertain: [], ...extra });
 describe("toDraft", () => {
   it("maps a Line Thai style reply to a valid draft with cents, details and Chinese names", () => {
-    const { draft, translations } = toDraft(receipt([line("Pad Thai", "25.80", { printedText: "Pad Thai x 2\nChicken\n($12.90 each)", nameZh: "泰式炒河粉 (鸡肉)", quantity: 2, unitPrice: "12.90", modifiers: ["Chicken"] }), line("Milk Tea", "$4.00", { nameZh: "奶茶" }), line("  ", "1.00")], { subtotal: "29.80", tax: "2.46", total: "32.26" }), "qwen3.5-plus");
+    const { draft, translations } = toDraft(receipt([line("Pad Thai", "25.80", { printedText: "Pad Thai x 2\nChicken\n($12.90 each)", nameZh: "泰式炒河粉", quantity: 2, unitPrice: "12.90", modifiers: ["Chicken"] }), line("Milk Tea", "$4.00", { nameZh: "奶茶" }), line("  ", "1.00")], { subtotal: "29.80", tax: "2.46", total: "32.26" }), "qwen3.5-plus");
     expect(isDraft(draft)).toBe(true);
     expect(draft.items.map(i => [i.name, i.priceCents])).toEqual([["Pad Thai", 2580], ["Milk Tea", 400]]);
     expect(draft.items[0].details).toMatchObject({ quantity: 2, unitPriceCents: 1290, printedPriceCents: 2580, sourceLines: ["Pad Thai x 2", "Chicken", "($12.90 each)"], modifiers: [{ text: "Chicken", sourceLine: "Chicken" }], discounts: [], reviewCodes: [] });
     expect([draft.printedSubtotalCents, draft.taxCents, draft.tipCents, draft.printedTotalCents]).toEqual([2980, 246, 0, 3226]);
-    expect(translations).toEqual([{ name: "Pad Thai", text: "泰式炒河粉 (鸡肉)" }, { name: "Milk Tea", text: "奶茶" }]); expect(draft.rawText).toContain("qwen3.5-plus");
+    expect(translations).toEqual([{ name: "Pad Thai", text: "泰式炒河粉" }, { name: "Milk Tea", text: "奶茶" }]); expect(draft.rawText).toContain("qwen3.5-plus");
   });
-  it("drops a Chinese name that adds a protein the receipt never prints, and keeps the rest", () => {
+  it("drops a Chinese name that adds a protein the printed name never states, and keeps the rest", () => {
     const { translations } = toDraft(receipt([
-      line("Pad Kra Pow", "12.90", { modifiers: ["Chicken"], nameZh: "打抛猪肉饭" }), line("Pad Kra Pow", "12.90", { modifiers: ["Chicken"], nameZh: "打抛饭 (鸡肉)" }), line("Kung Pao Chicken", "11.00", { nameZh: "宫保鸡丁" }),
+      line("Pad Kra Pow", "12.90", { modifiers: ["Chicken"], nameZh: "打抛饭 (鸡肉)" }), line("Pad See Ew", "12.90", { nameZh: "牛肉炒粿条" }), line("Pad Kra Pow Rice", "12.90", { modifiers: ["Chicken"], nameZh: "打抛饭" }), line("Kung Pao Chicken", "11.00", { nameZh: "宫保鸡丁" }),
       line("Fried Calamari", "9.00", { nameZh: "炸鱿鱼" }), line("Brown Sugar Milk", "8.00", { nameZh: "黑糖牛奶" }), line("Beef Pho", "13.00", { nameZh: "牛肉河粉" }),
     ]), "m");
-    expect(translations.map(t => t.text)).toEqual(["打抛饭 (鸡肉)", "宫保鸡丁", "炸鱿鱼", "黑糖牛奶", "牛肉河粉"]);
+    expect(translations.map(t => t.text)).toEqual(["打抛饭", "宫保鸡丁", "炸鱿鱼", "黑糖牛奶", "牛肉河粉"]);
+  });
+  it("shows one Chinese name for a repeated dish only when the readings of it agree", () => {
+    expect(toDraft(receipt([line("Milk Tea", "4.00", { nameZh: "奶茶" }), line("Milk Tea", "4.00", { nameZh: "奶茶" })]), "m").translations).toEqual([{ name: "Milk Tea", text: "奶茶" }]);
+    expect(toDraft(receipt([line("Milk Tea", "4.00", { nameZh: "奶茶" }), line("milk tea", "4.00", { nameZh: "珍珠奶茶" }), line("Rice", "2.00", { nameZh: "米饭" })]), "m").translations).toEqual([{ name: "Rice", text: "米饭" }]);
   });
   it("keeps Chinese names whose protein-looking characters are not proteins, or are printed, and drops invented ones", () => {
     const keep: [string, string, Partial<LlmItem>?][] = [["Egg Fried Rice", "鸡蛋炒饭"], ["House Cocktail", "鸡尾酒"], ["Avocado Toast", "牛油果吐司"], ["Croissant", "牛角包"], ["Escargot", "法式蜗牛"], ["Eggplant with Garlic Sauce", "鱼香茄子"], ["Fish Sauce Wings", "越南鱼露鸡翅"], ["Har Gow", "虾饺"], ["Lobster Roll", "龙虾卷"], ["Kani Salad", "蟹柳沙拉"], ["Unagi Roll", "鳗鱼卷"], ["Takoyaki", "章鱼小丸子"], ["Bulgogi", "韩式烤牛肉"], ["Chashu Ramen", "叉烧拉面"], ["Karaage", "日式炸鸡"], ["宫保鸡丁", "宫保鸡丁", { printedText: "宫保鸡丁" }]];
