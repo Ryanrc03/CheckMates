@@ -77,4 +77,9 @@ describe("translation service", () => {
   it("reports capabilities from detection and bundle status", async () => {
     const { service } = deps({ capabilities: () => ({ ok: false, reason: "wasm-simd" }) }); expect(await service.getCapabilities()).toMatchObject({ modelAvailable: false, reason: "wasm-simd", modelCached: true, downloadBytes: 57 });
   });
+  it("serves seeded cloud translations from its cache before the glossary or the model", async () => {
+    const { service, translateCalls } = deps(); service.seed([{ name: "Pad Kra Pow", text: "打抛饭 (鸡肉)" }, { name: "Milk Tea", text: "港式奶茶" }, { name: "  ", text: "空" }, { name: "Rice", text: " " }]);
+    const outcome = await service.translateDishes([{ id: "a", name: "pad  kra pow" }, { id: "b", name: "Milk Tea" }], opts());
+    expect(outcome.items.find(i => i.id === "a")).toMatchObject({ translatedText: "打抛饭 (鸡肉)", provider: "llm" }); expect(outcome.items.find(i => i.id === "b")?.translatedText).toBe("港式奶茶"); expect(translateCalls).toEqual([]);
+  });
 });

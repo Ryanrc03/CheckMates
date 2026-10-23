@@ -50,5 +50,5 @@ export function createTranslationStore(service: TranslationService, storage: Sto
     };
   });
 }
-const serverService: TranslationService = { getCapabilities: async () => ({ modelAvailable: false, modelCached: false, downloadBytes: 0 }), translateDishes: async () => ({ items: [], error: null }), setOcrBusy: async () => {}, cancelTranslations: async () => {}, clearCache: () => {}, dispose: async () => {} };
+const serverService: TranslationService = { getCapabilities: async () => ({ modelAvailable: false, modelCached: false, downloadBytes: 0 }), translateDishes: async () => ({ items: [], error: null }), seed: () => {}, setOcrBusy: async () => {}, cancelTranslations: async () => {}, clearCache: () => {}, dispose: async () => {} };
 export const useTranslationStore = createTranslationStore(typeof window === "undefined" ? serverService : getTranslationService(), typeof window === "undefined" ? null : window.localStorage);

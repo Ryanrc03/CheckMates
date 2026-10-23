@@ -81,6 +81,7 @@ export function createTranslationService(deps: TranslationServiceDeps = {}): Tra
       finally { controllers.delete(controller); options.signal.removeEventListener("abort", stop); }
     },
     setOcrBusy: setBusy,
+    seed(entries) { for (const entry of entries) { const key = translationKey(entry.name); const text = entry.text.trim(); if (key && text) remember(key, { text, provider: "llm" }); } },
     async cancelTranslations() { abortAll(); await disposeEngine(); },
     clearCache: () => cache.clear(), // the service owns the cache instance: clearing another instance would leave this one's in-memory copy to re-persist on its next save
     dispose: disposeEngine,
