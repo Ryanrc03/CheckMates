@@ -43,7 +43,7 @@ export function BillWizard() {
       if (!replacing) commitPhoto(selected);
       const onProgress = (message: string, value: number | null) => { if (id === request.current) { setStage(message); setProgress(value); } };
       let draft: ReceiptDraft; let translations: DishTranslation[] = [];
-      if (engine === "cloud") { const { recognizeWithCloud } = await import("@/lib/llm/recognize"); ({ draft, translations } = await recognizeWithCloud(image, { signal: abort.signal, onProgress })); }
+      if (engine === "cloud") { const { recognizeWithCloud } = await import("@/lib/llm/recognize").catch(() => { throw new Error("Could not load cloud recognition. Check your connection, or choose Standard or Precise."); }); ({ draft, translations } = await recognizeWithCloud(image, { signal: abort.signal, onProgress })); }
       else draft = parseReceiptEvidence(await recognizeReceipt(image, { signal: abort.signal, enhanced: enhancedScan.current, engine, onProgress }));
       if (id !== request.current) return;
       if (replacing) commitPhoto(selected);
