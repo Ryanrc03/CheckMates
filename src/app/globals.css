@@ -246,6 +246,24 @@
   .status-box progress::-webkit-progress-bar { background: var(--surface-sunken); }
   .status-box progress::-webkit-progress-value { border-radius: 999px; background: var(--primary); }
   .status-box progress::-moz-progress-bar { background: var(--primary); }
+  /* Cloud recognition steps (components/receipt/cloud-progress.tsx): no percentage exists, so a sweeping bar shows it is alive */
+  .cloud-progress { display: grid; gap: --spacing(3); margin-bottom: --spacing(3); text-align: left; }
+  .cloud-scan { position: relative; height: 6px; overflow: hidden; border-radius: 999px; background: var(--surface-sunken); }
+  .cloud-scan span { position: absolute; inset: 0 auto 0 0; width: 40%; border-radius: inherit; background: var(--primary); animation: cloud-sweep 1.4s ease-in-out infinite; }
+  .cloud-progress ol { display: grid; gap: --spacing(2.5); margin: 0; padding: 0; list-style: none; }
+  .cloud-step { display: flex; align-items: flex-start; gap: --spacing(2.5); color: var(--muted-foreground); transition: color .3s; }
+  .cloud-step b { display: block; font-size: var(--fs-small); }
+  .cloud-step small { display: block; font-size: var(--fs-caption); line-height: 1.4; }
+  .cloud-step.active, .cloud-step.done { color: var(--foreground); }
+  .cloud-step.active small { color: var(--muted-foreground); }
+  .cloud-step-icon { display: grid; flex: none; place-items: center; width: 20px; height: 20px; margin-top: 1px; border: 2px solid var(--rule); border-radius: 999px; }
+  .cloud-step.done .cloud-step-icon { border-color: var(--success); background: var(--success); color: var(--primary-foreground); animation: cloud-pop .3s ease-out; }
+  .cloud-step.active .cloud-step-icon { border-color: var(--surface-sunken); border-top-color: var(--primary); animation: cloud-spin .9s linear infinite; }
+  .cloud-progress .cloud-elapsed { margin: 0; font-size: var(--fs-caption); color: var(--muted-foreground); }
+  .photo-busy .cloud-progress { flex: 1 1 100%; margin-bottom: 0; }
+  @keyframes cloud-sweep { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+  @keyframes cloud-spin { to { transform: rotate(360deg); } }
+  @keyframes cloud-pop { from { transform: scale(.6); } to { transform: scale(1); } }
   .privacy { display: flex; align-items: center; justify-content: center; gap: --spacing(1.5); margin: --spacing(6) 0 --spacing(1.5); font-size: var(--fs-caption); color: var(--muted-foreground); }
   .privacy svg { width: 16px; height: 16px; }
   .how-it-works { display: flex; justify-content: center; gap: --spacing(6); margin-top: --spacing(8); padding-top: --spacing(5); border-top: 1px solid var(--border); font-size: var(--fs-caption); color: var(--muted-foreground); }

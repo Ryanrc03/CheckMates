@@ -27,6 +27,23 @@ test("cloud engine fills prices, tax and Chinese names from one Qwen reply", asy
   await expect(page.locator(".dish-translation", { hasText: "打抛饭" })).toBeVisible(); await expect(page.locator('.dish-translation[data-provider="llm"]')).toHaveCount(2);
   expect(bodies).toHaveLength(1); expect(bodies[0].model).toBe("qwen3.5-plus"); expect(bodies[0].messages[1].content[0].image_url?.url).toMatch(/^data:image\/jpeg;base64,/);
 });
+test("the status box walks through the Chinese steps, including the recheck", async ({ page }) => {
+  const gates: (() => void)[] = []; const answers = [{ ...reply, subtotal: "20.00" }, reply]; // the first reading misses the subtotal, so a recheck follows
+  await page.route("**/compatible-mode/v1/chat/completions", async route => {
+    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    expect(route.request().headers().authorization).toBe("Bearer e2e-fake-key");
+    await new Promise<void>(release => gates.push(release));
+    await route.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ choices: [{ message: { role: "assistant", content: JSON.stringify(answers.shift()) } }] }) });
+  });
+  await recognize(page);
+  const status = page.getByRole("status").filter({ hasText: "正在识别小票" });
+  await expect(status.locator('[aria-current="step"]')).toContainText("通义千问读小票", { timeout: 30000 });
+  await expect(status.locator(".cloud-step.done")).toContainText("压缩照片"); await expect(status).toContainText(/已用 \d+ 秒/); await expect(status).toContainText("照片已发给阿里云通义千问识别");
+  await expect.poll(() => gates.length).toBe(1); gates.shift()!();
+  await expect(status.locator('[aria-current="step"]')).toContainText("重新逐行核对");
+  await expect.poll(() => gates.length).toBe(1); gates.shift()!();
+  await expect(page.getByRole("heading", { name: "Check the receipt" })).toBeVisible({ timeout: 30000 });
+});
 test("a rejected key tells the user how to continue", async ({ page }) => {
   await mockQwen(page, { status: 401, body: { error: { code: "invalid_api_key" } } });
   await recognize(page);

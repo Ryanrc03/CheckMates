@@ -1,4 +1,5 @@
 import { cloudConfig, type CloudConfig } from "./config";
+import { CLOUD_STAGE } from "./progress";
 import { recheckMessage } from "./prompt";
 import { requestReceipt } from "./qwen-client";
 import { parseLlmReply } from "./reply";
@@ -15,12 +16,12 @@ export function createCloudRecognizer(deps: CloudDeps) {
     const controller = new AbortController(); const abort = () => controller.abort(); if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true });
     let timedOut = false; const timer = setTimeout(() => { timedOut = true; controller.abort(); }, TIMEOUT_MS);
     try {
-      onProgress("Preparing the photo", null); const url = await deps.prepare(image); if (controller.signal.aborted) throw canceled();
-      onProgress("Reading with cloud recognition", null);
+      onProgress(CLOUD_STAGE.prepare, null); const url = await deps.prepare(image); if (controller.signal.aborted) throw canceled();
+      onProgress(CLOUD_STAGE.read, null);
       const firstText = await deps.request(url, config, { signal: controller.signal }); const first = toDraft(parseLlmReply(firstText), config.model);
       const problem = readingProblem(first.draft); let result = first; let recheckError: unknown = null;
       if (problem) {
-        onProgress("Double-checking every line", null);
+        onProgress(CLOUD_STAGE.recheck, null);
         try { result = mergeReadings(first, toDraft(parseLlmReply(await deps.request(url, config, { signal: controller.signal, recheck: recheckMessage(firstText, problem) })), config.model)); }
         catch (error) {
           if (signal.aborted) throw error; recheckError = error; // a timeout must not discard a usable first reading
