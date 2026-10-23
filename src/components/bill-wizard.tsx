@@ -14,6 +14,8 @@ import { recognizeReceipt, type OcrEngine } from "@/lib/ocr/client";
 import { readEnginePreference, writeEnginePreference } from "@/lib/ocr/engine-preference";
 import { parseReceiptEvidence } from "@/lib/ocr/retry";
 import { parseReceiptText } from "@/lib/ocr/parseReceipt";
+import type { ReceiptDraft } from "@/types/receipt";
+import type { DishTranslation } from "@/lib/llm/to-draft";
 import type { Adjustment } from "@/lib/receipt-image/render";
 import { getTranslationService } from "@/lib/translation/service";
 import { useTranslationStore } from "@/store/useTranslationStore";
@@ -39,12 +41,15 @@ export function BillWizard() {
     try {
       await getTranslationService().setOcrBusy(true); // frees the translation engine before OCR; released in finally or by cancel()
       if (!replacing) commitPhoto(selected);
-      const result = await recognizeReceipt(image, { signal: abort.signal, enhanced: enhancedScan.current, engine, onProgress: (message, value) => { if (id === request.current) { setStage(message); setProgress(value); } } });
+      const onProgress = (message: string, value: number | null) => { if (id === request.current) { setStage(message); setProgress(value); } };
+      let draft: ReceiptDraft; let translations: DishTranslation[] = [];
+      if (engine === "cloud") { const { recognizeWithCloud } = await import("@/lib/llm/recognize"); ({ draft, translations } = await recognizeWithCloud(image, { signal: abort.signal, onProgress })); }
+      else draft = parseReceiptEvidence(await recognizeReceipt(image, { signal: abort.signal, enhanced: enhancedScan.current, engine, onProgress }));
       if (id !== request.current) return;
-      const draft = parseReceiptEvidence(result);
       if (replacing) commitPhoto(selected);
       else useBillStore.getState().startBill("photo", selected.name);
       useBillStore.getState().setReceiptDraft(draft); useTranslationStore.getState().clearForBill(); setDraftVersion(v => v + 1);
+      if (translations.length) { getTranslationService().seed(translations); useTranslationStore.getState().setEnabled(true); } // cloud names come with the draft; the receipt step's translation request then reads them from the cache
     } catch (failure) {
       if (id === request.current && !abort.signal.aborted) { if (replacing) discardAdjustment(); setError(failure instanceof Error ? failure.message : "Recognition failed. Try again or enter items manually."); }
     } finally { if (id === request.current) { setBusy(false); controller.current = null; void getTranslationService().setOcrBusy(false); } }

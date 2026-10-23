@@ -5,13 +5,14 @@ import {readFinancialEvidence} from "./financial-evidence";
 import {prepareFinancialImage} from "./financial-image";
 type ProgressMessage = { status: string; progress?: number };
 export type OcrWorker = { recognize: (image: Blob, scan?: {pageSegMode:3|4|6|11}) => Promise<{ data: OcrEvidence }>; terminate: () => Promise<unknown> };
-export type OcrEngine = "standard" | "precise";
-type Options = { signal: AbortSignal; onProgress: (stage: string, progress: number | null) => void; enhanced?:boolean; engine?: OcrEngine };
+export type OcrEngine = "standard" | "precise" | "cloud";
+export type LocalEngine = Exclude<OcrEngine, "cloud">; // the cloud engine returns a draft directly (src/lib/llm), not OCR evidence
+type Options = { signal: AbortSignal; onProgress: (stage: string, progress: number | null) => void; enhanced?:boolean; engine?: LocalEngine };
 type Factory = (logger: (message: ProgressMessage) => void, signal: AbortSignal) => Promise<OcrWorker>;
 const aborted = () => new DOMException("Recognition canceled. You can select another photo or enter items manually.", "AbortError");
 
 /** Enhanced and financial re-scans are Tesseract page-segmentation tricks; the precise (PaddleOCR) engine runs one pass. */
-export function createReceiptRecognizer(factories: Record<OcrEngine, Factory>,prepareFinancial?:(image:Blob,kind:"summary"|"tail",evidence?:OcrEvidence)=>Promise<Blob>) {
+export function createReceiptRecognizer(factories: Record<LocalEngine, Factory>,prepareFinancial?:(image:Blob,kind:"summary"|"tail",evidence?:OcrEvidence)=>Promise<Blob>) {
   let cancelActive: (() => void) | null = null;
   return async (image: Blob, { signal, onProgress, enhanced, engine = "standard" }: Options): Promise<OcrEvidence> => {
     cancelActive?.();
