@@ -1,0 +1,47 @@
+import { describe, expect, it } from "vitest";
+import { isDraft } from "@/lib/session";
+import type { LlmItem, LlmReceipt } from "./reply";
+import { mergeReadings, readingProblem, toDraft } from "./to-draft";
+const line = (name: string, lineTotal: string | null, extra: Partial<LlmItem> = {}): LlmItem => ({ printedText: name, name, nameZh: "", quantity: null, unitPrice: null, lineTotal, modifiers: [], ...extra });
+const receipt = (items: LlmItem[], extra: Partial<LlmReceipt> = {}): LlmReceipt => ({ items, discounts: [], subtotal: null, tax: null, tip: null, total: null, uncertain: [], ...extra });
+describe("toDraft", () => {
+  it("maps a Line Thai style reply to a valid draft with cents, details and Chinese names", () => {
+    const { draft, translations } = toDraft(receipt([line("Pad Thai", "25.80", { printedText: "Pad Thai x 2\nChicken\n($12.90 each)", nameZh: "泰式炒河粉 (鸡肉)", quantity: 2, unitPrice: "12.90", modifiers: ["Chicken"] }), line("Milk Tea", "$4.00", { nameZh: "奶茶" }), line("  ", "1.00")], { subtotal: "29.80", tax: "2.46", total: "32.26" }), "qwen3.5-plus");
+    expect(isDraft(draft)).toBe(true);
+    expect(draft.items.map(i => [i.name, i.priceCents])).toEqual([["Pad Thai", 2580], ["Milk Tea", 400]]);
+    expect(draft.items[0].details).toMatchObject({ quantity: 2, unitPriceCents: 1290, printedPriceCents: 2580, sourceLines: ["Pad Thai x 2", "Chicken", "($12.90 each)"], modifiers: [{ text: "Chicken", sourceLine: "Chicken" }], discounts: [], reviewCodes: [] });
+    expect([draft.printedSubtotalCents, draft.taxCents, draft.tipCents, draft.printedTotalCents]).toEqual([2980, 246, 0, 3226]);
+    expect(translations).toEqual([{ name: "Pad Thai", text: "泰式炒河粉 (鸡肉)" }, { name: "Milk Tea", text: "奶茶" }]); expect(draft.rawText).toContain("qwen3.5-plus");
+  });
+  it("keeps unreadable amounts null with a warning and leaves every discount for the user", () => {
+    const { draft } = toDraft(receipt([line("Soup", "8.2?"), line("Toast", "6.00")], { discounts: [{ printedText: "Toast coupon", amount: "-1.00", itemIndex: 1 }, { printedText: "Happy hour", amount: "2.00", itemIndex: null }], uncertain: ["soup amount smudged"] }), "m");
+    expect(draft.items[0].priceCents).toBeNull(); expect(draft.items[1].details?.discounts).toEqual([{ discountCents: 100, inclusion: "unresolved", sourceLine: "Toast coupon" }]); expect(draft.items[1].details?.reviewCodes).toEqual(["discount"]);
+    expect(draft.unassignedDiscounts).toEqual(["Happy hour"]); expect(draft.warnings).toEqual(["Cloud recognition was unsure: soup amount smudged", "Could not read the amount \"8.2?\" for Soup. Enter it from the photo."]);
+  });
+});
+describe("readingProblem", () => {
+  const draft = (items: LlmItem[], extra: Partial<LlmReceipt> = {}) => toDraft(receipt(items, extra), "m").draft;
+  it("accepts items that add up to the printed subtotal, or to the total with tax and tip", () => {
+    expect(readingProblem(draft([line("A", "4.00"), line("B", "12.90")], { subtotal: "16.90" }))).toBeNull();
+    expect(readingProblem(draft([line("A", "4.00")], { tax: "0.33", tip: "1.00", total: "5.33" }))).toBeNull();
+    expect(readingProblem(draft([line("A", "4.00")]))).toBeNull(); // nothing printed to check against
+  });
+  it("names the gap, unreadable amounts and an empty reading, and skips the sum when a discount is listed", () => {
+    expect(readingProblem(draft([line("A", "4.00")], { subtotal: "16.90" }))).toBe("Its item amounts add up to $4.00, but the printed subtotal is $16.90.");
+    expect(readingProblem(draft([line("A", null)]))).toBe("The amounts for A were unreadable.");
+    expect(readingProblem(draft([]))).toBe("It lists no items.");
+    expect(readingProblem(draft([line("A", "4.00")], { subtotal: "3.00", discounts: [{ printedText: "Coupon", amount: "1.00", itemIndex: 0 }] }))).toBeNull();
+  });
+});
+describe("mergeReadings", () => {
+  const reading = (items: LlmItem[], subtotal: string) => toDraft(receipt(items, { subtotal }), "m");
+  it("prefers a balanced second reading as is", () => {
+    const second = reading([line("A", "4.00"), line("B", "12.90")], "16.90");
+    expect(mergeReadings(reading([line("A", "4.00")], "16.90"), second)).toBe(second);
+  });
+  it("blanks amounts the readings disagree on and lists lines only one reading found", () => {
+    const { draft } = mergeReadings(reading([line("Pad Thai", "12.90"), line("Tea", "3.00")], "17.90"), reading([line("Pad Thai", "13.00"), line("Rice", "2.00")], "17.90"));
+    expect(draft.items.map(i => [i.name, i.priceCents])).toEqual([["Pad Thai", null], ["Rice", 200]]); expect(draft.items[0].details?.reviewCodes).toEqual(["ocr-price"]);
+    expect(draft.warnings).toEqual(["Two readings disagree on the amount for Pad Thai ($12.90 or $13.00). Enter the printed amount.", "Only the second reading found Rice. Check it against the photo.", "The first reading also found Tea ($3.00). Add it if it is on the receipt."]);
+  });
+});
