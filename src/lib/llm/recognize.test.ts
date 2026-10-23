@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { requestReceipt } from "./qwen-client";
 import { createCloudRecognizer } from "./recognize";
 const config = { apiKey: "k", baseUrl: "https://x.test/v1", model: "qwen3.5-plus" };
@@ -32,5 +32,52 @@ describe("cloud recognizer", () => {
     const request = vi.fn<typeof requestReceipt>((_url, _config, o) => new Promise((_, reject) => o.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")))));
     const pending = createCloudRecognizer({ config, prepare: async () => "u", request })(new Blob(["x"]), { signal: controller.signal, onProgress: () => {} }); controller.abort();
     await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  });
+});
+
+const hang = (o: { signal: AbortSignal }) => new Promise<string>((_, reject) => o.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError"))));
+const short = reply([["Milk Tea", "4.00"]], "16.90");
+describe("cloud recognizer cancel, timeout and cleanup", () => {
+  afterEach(() => { vi.useRealTimers(); });
+  it("cancels during the first request", async () => {
+    let started!: () => void; const begun = new Promise<void>(r => { started = r; });
+    const request = vi.fn<typeof requestReceipt>((_u, _c, o) => { started(); return hang(o); });
+    const controller = new AbortController();
+    const pending = createCloudRecognizer({ config, prepare: async () => "u", request })(new Blob(["x"]), { signal: controller.signal, onProgress: () => {} });
+    await begun; controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: "AbortError", message: expect.stringContaining("Recognition canceled") });
+  });
+  it("cancels during the recheck instead of returning the first reading", async () => {
+    let started!: () => void; const begun = new Promise<void>(r => { started = r; });
+    let calls = 0;
+    const request = vi.fn<typeof requestReceipt>(async (_u, _c, o) => { if (++calls === 1) return short; started(); return hang(o); });
+    const controller = new AbortController();
+    const pending = createCloudRecognizer({ config, prepare: async () => "u", request })(new Blob(["x"]), { signal: controller.signal, onProgress: () => {} });
+    await begun; controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: "AbortError", message: expect.stringContaining("Recognition canceled") });
+  });
+  it("times out during the first request", async () => {
+    vi.useFakeTimers();
+    const request = vi.fn<typeof requestReceipt>((_u, _c, o) => hang(o));
+    const pending = createCloudRecognizer({ config, prepare: async () => "u", request })(new Blob(["x"]), options());
+    const settled = expect(pending).rejects.toThrow("longer than 90 seconds");
+    await vi.advanceTimersByTimeAsync(90000); await settled;
+  });
+  it("keeps the first reading with a warning when the recheck times out", async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const request = vi.fn<typeof requestReceipt>(async (_u, _c, o) => ++calls === 1 ? short : hang(o));
+    const pending = createCloudRecognizer({ config, prepare: async () => "u", request })(new Blob(["x"]), options());
+    await vi.advanceTimersByTimeAsync(90000);
+    const { draft } = await pending;
+    expect(draft.items).toHaveLength(1); expect(draft.warnings).toEqual(["The double-check took too long; showing the first reading."]);
+  });
+  it("removes its abort listener after a successful run", async () => {
+    const signal = new AbortController().signal; const remove = vi.spyOn(signal, "removeEventListener");
+    await make(reply([["Milk Tea", "4.00"], ["Pad Thai", "12.90"]], "16.90")).recognize(new Blob(["x"]), { signal, onProgress: () => {} });
+    expect(remove).toHaveBeenCalledWith("abort", expect.any(Function));
+  });
+  it("reports the recheck error when the first reading is empty", async () => {
+    await expect(make(reply([], null), new Error("Cloud recognition is busy or over its quota.")).recognize(new Blob(["x"]), options())).rejects.toThrow("over its quota");
   });
 });

@@ -18,13 +18,16 @@ export function createCloudRecognizer(deps: CloudDeps) {
       onProgress("Preparing the photo", null); const url = await deps.prepare(image); if (controller.signal.aborted) throw canceled();
       onProgress("Reading with cloud recognition", null);
       const firstText = await deps.request(url, config, { signal: controller.signal }); const first = toDraft(parseLlmReply(firstText), config.model);
-      const problem = readingProblem(first.draft); let result = first;
+      const problem = readingProblem(first.draft); let result = first; let recheckError: unknown = null;
       if (problem) {
         onProgress("Double-checking every line", null);
         try { result = mergeReadings(first, toDraft(parseLlmReply(await deps.request(url, config, { signal: controller.signal, recheck: recheckMessage(firstText, problem) })), config.model)); }
-        catch (error) { if (controller.signal.aborted) throw error; first.draft.warnings.push(`The double-check could not run: ${error instanceof Error ? error.message : "unknown error"}`); }
+        catch (error) {
+          if (signal.aborted) throw error; recheckError = error; // a timeout must not discard a usable first reading
+          first.draft.warnings.push(timedOut ? "The double-check took too long; showing the first reading." : `The double-check could not run: ${error instanceof Error ? error.message : "unknown error"}`);
+        }
       }
-      if (!result.draft.items.length) throw new Error("No receipt items found. Try a clearer photo, or enter items manually.");
+      if (!result.draft.items.length) throw recheckError ?? new Error("No receipt items found. Try a clearer photo, or enter items manually.");
       return result;
     } catch (error) {
       if (timedOut) throw new Error("Cloud recognition took longer than 90 seconds. Try again, or choose Standard or Precise.");

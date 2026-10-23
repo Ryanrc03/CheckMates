@@ -28,4 +28,9 @@ describe("requestReceipt", () => {
     const controller = new AbortController(); controller.abort();
     await expect(requestReceipt("u", config, { signal: controller.signal, fetch: async () => { throw new DOMException("aborted", "AbortError"); } })).rejects.toMatchObject({ name: "AbortError" });
   });
+  it("maps DashScope error codes before the status fallback", async () => {
+    const body = (code: string, status: number) => async () => new Response(JSON.stringify({ error: { code } }), { status });
+    for (const [code, status, message] of [["Arrearage", 400, "no balance"], ["DataInspectionFailed", 400, "content check"], ["data_inspection_failed", 400, "content check"], ["model_not_found", 400, "model is not available"], ["", 404, "model is not available"]] as const)
+      await expect(requestReceipt("u", config, { signal: live(), fetch: body(code, status) })).rejects.toThrow(message);
+  });
 });
