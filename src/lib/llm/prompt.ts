@@ -12,7 +12,7 @@ export const RECEIPT_SCHEMA = {
 };
 /** Measured on the Line Thai Cafe photo (2026-10-22): without the protein rule Qwen translated "Pad Kra Pow" + "Chicken" as 打抛猪肉饭. */
 export const RECEIPT_PROMPT = `You transcribe one restaurant receipt photo into JSON. Completeness matters most: list EVERY purchased dish or drink line, top to bottom, and skip none.
-- printedText: the item's printed lines, joined with "\n".
+- printedText: the item's printed lines, joined with "\\n".
 - name: the item name exactly as printed in English, including portion notes such as "(12)", without quantity markers such as "x 2" or "2 @".
 - nameZh: the Simplified Chinese menu name for this item. If a modifier names the protein (Chicken, Beef, Shrimp, Tofu...), use that protein. Never mention a meat, seafood, ingredient or size that appears in neither name nor modifiers, even if the dish is usually made that way. Keep portion notes such as (12).
 - lineTotal: the amount printed on that item's row. Never compute or multiply it. quantity and unitPrice only when printed.
