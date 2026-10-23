@@ -3,3 +3,6 @@
 test-results/
 playwright-report/
 coverage/
+.env*
+!.env.example
+.claude/
