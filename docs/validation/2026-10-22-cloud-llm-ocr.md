@@ -29,7 +29,9 @@ Date: 2026-10-22. Branch `claude/v4-recipe-api-keys-dc6b48` (not deployed yet). 
 | Line Thai Cafe (redacted real photo) | 6/6 items with exact names and prices (1390, 790, 400, 2580, 1290, 800), subtotal 7250, tax 598, total 7848 | 12.3-19.6 s |
 | Clear diner (synthetic) | Exact | 5.7-7.0 s |
 
-Final Chinese names for the Line Thai items: 菠萝炒饭, 炸豆腐(12), 奶茶, 泰式炒河粉, 打抛饭, 黑糖牛奶.
+Chinese names from the latest live run for the Line Thai items: 菠萝炒饭, 炸豆腐 (12), 奶茶, 泰式炒河粉, 泰式打抛肉, 黑糖牛奶. 泰式打抛肉 names a generic meat the printed name "Pad Kra Pow" does not state, so the generic-meat guard drops it and that item falls back to the local translation.
+
+Cached Chinese names live for 30 days, keyed by the printed name. Devices used for testing before this branch's name-only fix may hold stale cached names (for example a protein taken from a modifier). Clear site data before testing.
 
 ## Translation hallucination and its fix
 
