@@ -15,7 +15,7 @@ describe.skipIf(!process.env.LIVE_LLM || !config)("live Qwen receipt accuracy (L
     console.log(JSON.stringify({ items: draft.items.map(i => [i.name, i.priceCents]), translations, warnings: draft.warnings }));
     expect(draft.items.map(i => i.priceCents)).toEqual(expected.items.map(i => i.priceCents)); expect(draft.items.map(i => i.name)).toEqual(expected.items.map(i => i.name));
     expect([draft.printedSubtotalCents, draft.taxCents, draft.printedTotalCents]).toEqual([expected.subtotalCents, expected.taxCents, expected.totalCents]);
-    expect(translations.find(t => t.name === "Pad Kra Pow")?.text).not.toMatch(/猪/); expect(translations.find(t => t.name === "Brown Sugar Milk")?.text).not.toMatch(/珍珠/);
+    expect(translations.find(t => t.name === "Pad Kra Pow")?.text ?? "").not.toMatch(/猪/); expect(translations.find(t => t.name === "Brown Sugar Milk")?.text ?? "").not.toMatch(/珍珠/);
   }, 120000);
   it("reads the synthetic diner receipt exactly", async () => {
     const expected = JSON.parse(readFileSync("tests/fixtures/receipts/clear-diner.expected.json", "utf8")) as { items: { name: string; priceCents: number }[]; taxCents: number; totalCents: number };

@@ -7,6 +7,9 @@ const cents = (value: string | null) => value === null ? null : parseMoney(value
 const CJK = /[㐀-鿿]/;
 const key = (name: string) => name.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
 /** Same unconfirmed draft the local engines produce: unreadable amounts stay null and every discount stays unresolved for the user. */
+const PROTEINS: [RegExp, RegExp][] = [[/猪|叉烧|培根|火腿/, /pork|bacon|ham|char ?siu/i], [/牛(?!奶)/, /beef|steak|brisket|oxtail/i], [/鸡/, /chicken/i], [/虾/, /shrimp|prawn/i], [/鸭/, /duck/i], [/羊/, /lamb|mutton|goat/i], [/鱼/, /fish|salmon|cod|tuna|tilapia|snapper|halibut|eel|squid|calamari|cuttlefish/i], [/蟹/, /crab/i]];
+/** Qwen keeps adding a dish's usual meat (打抛猪肉饭 for "Pad Kra Pow" + "Chicken") whatever the prompt says, so a name that adds an unprinted protein is not shown (2026-10-22 live eval). */
+const invents = (zh: string, printed: string) => PROTEINS.some(([z, en]) => z.test(zh) && !en.test(printed));
 export function toDraft(reply: LlmReceipt, model: string): CloudReading {
   const warnings = reply.uncertain.map(note => note.trim()).filter(Boolean).map(note => `Cloud recognition was unsure: ${note}`);
   const slots: (DraftItem | null)[] = reply.items.map(item => {
@@ -24,7 +27,7 @@ export function toDraft(reply: LlmReceipt, model: string): CloudReading {
   }
   const rawText = [...reply.items.map(i => `${i.printedText.replace(/\n/g, " / ")}  ${i.lineTotal ?? "?"}`), ...reply.discounts.map(d => `${d.printedText}  -${d.amount?.replace(/^-/, "") ?? "?"}`), ...(["subtotal", "tax", "tip", "total"] as const).filter(k => reply[k] !== null).map(k => `${k}  ${reply[k]}`), `(read by ${model})`].join("\n");
   const draft: ReceiptDraft = { items: slots.filter((i): i is DraftItem => i !== null), rawText, taxCents: cents(reply.tax), tipCents: reply.tip === null ? 0 : cents(reply.tip), printedSubtotalCents: cents(reply.subtotal), printedTotalCents: cents(reply.total), warnings, ...(unassignedDiscounts.length ? { unassignedDiscounts } : {}) };
-  const translations = reply.items.filter(i => i.name.trim() && CJK.test(i.nameZh) && i.nameZh.trim().length <= 60).map(i => ({ name: i.name.trim(), text: i.nameZh.trim() }));
+  const translations = reply.items.filter(i => i.name.trim() && CJK.test(i.nameZh) && !invents(i.nameZh, [i.name, ...i.modifiers].join(" ")) && i.nameZh.trim().length <= 60).map(i => ({ name: i.name.trim(), text: i.nameZh.trim() }));
   return { draft, translations };
 }
 /** Why a reading cannot be trusted yet, phrased for the recheck request; null when it balances or nothing printed can check it. */

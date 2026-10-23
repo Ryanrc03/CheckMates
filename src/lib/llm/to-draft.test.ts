@@ -13,6 +13,13 @@ describe("toDraft", () => {
     expect([draft.printedSubtotalCents, draft.taxCents, draft.tipCents, draft.printedTotalCents]).toEqual([2980, 246, 0, 3226]);
     expect(translations).toEqual([{ name: "Pad Thai", text: "泰式炒河粉 (鸡肉)" }, { name: "Milk Tea", text: "奶茶" }]); expect(draft.rawText).toContain("qwen3.5-plus");
   });
+  it("drops a Chinese name that adds a protein the receipt never prints, and keeps the rest", () => {
+    const { translations } = toDraft(receipt([
+      line("Pad Kra Pow", "12.90", { modifiers: ["Chicken"], nameZh: "打抛猪肉饭" }), line("Pad Kra Pow", "12.90", { modifiers: ["Chicken"], nameZh: "打抛饭 (鸡肉)" }), line("Kung Pao Chicken", "11.00", { nameZh: "宫保鸡丁" }),
+      line("Fried Calamari", "9.00", { nameZh: "炸鱿鱼" }), line("Brown Sugar Milk", "8.00", { nameZh: "黑糖牛奶" }), line("Beef Pho", "13.00", { nameZh: "牛肉河粉" }),
+    ]), "m");
+    expect(translations.map(t => t.text)).toEqual(["打抛饭 (鸡肉)", "宫保鸡丁", "炸鱿鱼", "黑糖牛奶", "牛肉河粉"]);
+  });
   it("keeps unreadable amounts null with a warning and leaves every discount for the user", () => {
     const { draft } = toDraft(receipt([line("Soup", "8.2?"), line("Toast", "6.00")], { discounts: [{ printedText: "Toast coupon", amount: "-1.00", itemIndex: 1 }, { printedText: "Happy hour", amount: "2.00", itemIndex: null }], uncertain: ["soup amount smudged"] }), "m");
     expect(draft.items[0].priceCents).toBeNull(); expect(draft.items[1].details?.discounts).toEqual([{ discountCents: 100, inclusion: "unresolved", sourceLine: "Toast coupon" }]); expect(draft.items[1].details?.reviewCodes).toEqual(["discount"]);
