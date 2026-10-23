@@ -1,5 +1,7 @@
 # Verification record — CheckMates
 
+2026-10-22 V4 cloud recognition (branch `claude/v4-recipe-api-keys-dc6b48`, not deployed yet): an optional Cloud AI engine sends the corrected photo from the browser to Alibaba Cloud Qwen (`qwen3.5-plus`). `npm test` passed 247 tests (2 live skipped); the Playwright suite passed 73 on chromium and webkit with a mocked endpoint. A live run on the one redacted real photo read 6/6 items and all totals exactly; broad real-photo accuracy and physical-phone timing are unverified. See [cloud LLM record](validation/2026-10-22-cloud-llm-ocr.md).
+
 2026-09-29 V2-A release: the per-photo correction flow was published at [the live demo](https://checkmates-pi.vercel.app) from a clean branch based on public MVP `cc06071`; the earlier reverted V2 experiment commits were not pushed. The release checkout passed 54 unit tests, 29 production-mode Chromium tests, lint, and build. Vercel production deployment `dpl_5T2ibbYmApcJiBbTt8QmQHD7uQaJ` is ready. The homepage, OCR manifest, worker, and English model returned HTTP 200; a live 375px browser session reached the adjustment page before any OCR request and recognized Soup as $8.25 after confirmation. Physical-phone performance and broad real-photo accuracy are still unverified; see [V2-A validation](validation/v2-image-correction.md). The historical MVP record follows.
 
 Date: 2026-09-27. Environment: Windows, Node 24.12.0, npm 11.6.2, Next.js 16.3.6, Chromium 145 (Playwright 1.58.2). Public branch: `main`.

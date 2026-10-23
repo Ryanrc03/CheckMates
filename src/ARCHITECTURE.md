@@ -4,7 +4,7 @@ Map of the CheckMates source for agents and contributors. Read this before chang
 
 ## What the app is
 
-A single-page, client-only receipt splitter. Five wizard steps, no server API:
+A single-page, client-only receipt splitter. Five wizard steps, no server API of its own:
 
 ```
 home ──► receipt ──► people ──► split ──► result
@@ -13,6 +13,8 @@ home ──► receipt ──► people ──► split ──► result
 ```
 
 The photo is read by Tesseract.js running in a browser Web Worker. Bill data persists in `localStorage`; photos never do.
+
+With `NEXT_PUBLIC_DASHSCOPE_API_KEY` set at build time, a third engine, **Cloud AI**, sends the corrected photo from the browser straight to Alibaba Cloud DashScope (`qwen3.5-plus`) and gets back items, amounts and Chinese names in one call. The key is public in the bundle by design; cost is capped on the Alibaba Cloud side.
 
 ## Directory map
 
@@ -37,6 +39,7 @@ lib/                  Pure logic (no React). Everything here is unit tested.
   share.ts            Copyable summary text.
   session.ts          Runtime validation of persisted state, v1->v2 migration, step gating.
   receipt.ts          Sample bill and empty bill factories.
+  llm/                Cloud engine: DashScope request, prompt/schema, reply validation, draft mapping and ledger recheck (see below).
   ocr/                Recognition + receipt parsing pipeline (see below).
   receipt-image/      Photo analysis and perspective/tilt correction (see below).
 types/
@@ -103,6 +106,30 @@ Entry point: `recognizeReceipt` in `client.ts`, called from `bill-wizard.tsx` `r
 
 These rules are deliberate and backed by real-photo regressions (`docs/validation/`). Do not relax them to make one receipt pass.
 
+## Cloud engine (`lib/llm/`)
+
+Entry point: `recognizeWithCloud` in `recognize.ts`, called from `bill-wizard.tsx` `recognizePrepared` when the engine is `"cloud"`. It returns a `ReceiptDraft` directly (no `OcrEvidence`), plus Chinese names that are seeded into the translation cache as provider `llm`. The engine is offered only when a key is configured, and then it is the default (`ocr/engine-preference.ts`). The home step privacy line and the "reading" status text are engine-aware (`home/home-step.tsx`).
+
+| File | Role |
+|---|---|
+| `config.ts` | `NEXT_PUBLIC_DASHSCOPE_*` (literal reads, inlined at build). No key, or a non-https base URL, means the engine is hidden. Defaults: China (Beijing) endpoint, `qwen3.5-plus` |
+| `upload-image.ts` | JPEG data URL, long edge <= 2048 px. A 2.3 MB PNG took 69 s; a 260 KB JPEG took 11 s |
+| `prompt.ts` | Prompt, JSON Schema and recheck message. Copy amounts, never compute; `nameZh` may not add unprinted ingredients |
+| `qwen-client.ts` | One `chat/completions` request (`enable_thinking: false`, `temperature: 0`, strict `json_schema`). HTTP statuses and DashScope codes (`Arrearage`, `DataInspectionFailed`, `model_not_found`) map to messages that say what to do next |
+| `reply.ts` | Hand validation of the model JSON into `LlmReceipt` |
+| `to-draft.ts` | Cents via `parseMoney` (commas stripped only as thousands separators), discounts `unresolved`, `readingProblem` ledger check, `mergeReadings`, protein guard |
+| `recognize.ts` | `createCloudRecognizer`: one reading, at most one recheck, 90 s total timeout |
+
+Recognition flow: compress, read, then `readingProblem` checks the draft. A recheck (one only) is sent with the first transcription and the specific gap when items miss the printed subtotal (or sum + tax + tip misses the printed total), an item amount or the tip is unreadable, or no items were found. If the recheck fails or times out, the first reading is kept with a warning. User cancel always wins over a timeout. If there are still no items, the engine throws.
+
+`to-draft.ts` details:
+- Printed subtotal, tax, tip and total that cannot be read add warnings. An unreadable tip stays `null`; the tip is 0 only when no tip is printed.
+- Names are matched across the two readings by a key built from NFKC normalization and Unicode letters only, so Chinese names match too.
+- `mergeReadings`: a recheck that balances wins outright. An empty recheck keeps the first reading. Otherwise amounts the two readings disagree on are blanked (`ocr-price`), and lines only one reading saw become warnings, never silent additions.
+- Protein guard (`PROTEINS` / `invents`): a Chinese name is dropped when it adds a meat or seafood that appears in none of the printed name, the printed text or the modifiers. Qwen wrote 打抛猪肉饭 for "Pad Kra Pow" + "Chicken" in live runs whatever the prompt said, so this is deterministic rather than a prompt example. Dropped names fall back to the local glossary/model translation.
+
+The same conservative policy as the local engine applies; see "Parsing policy" above.
+
 ## Photo correction (`lib/receipt-image/`)
 
 | File | Role |
@@ -130,6 +157,7 @@ UI: `components/receipt/photo-adjustment.tsx`. Adjustments are kept per `File` i
 | Financial field misread | `financial-evidence.ts` / `financial-image.ts`; check `docs/validation/2026-10-06-financial-ocr.md` first |
 | New persisted field | `types/receipt.ts` BillSession → `useBillStore.ts` persist/initial → `session.ts` restoreSession |
 | Result display | `components/result/*`; the data comes from `explainSplitBill` |
+| Cloud recognition accuracy or translation wording | `lib/llm/prompt.ts`; verify with `LIVE_LLM=1 npx vitest run src/lib/llm/live-eval.test.ts` (reads `.env.local`, about 0.03 CNY per run) |
 | Colors, type, spacing, a component's look | `app/globals.css` `:root` tokens and `@layer components`; read "Styling" first |
 
 ## Styling

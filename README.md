@@ -28,6 +28,8 @@ npm start
 
 `prebuild` copies OCR resources to `public/ocr`. Deploy that directory together with the Next.js output. Missing assets or unexpected versions make preparation fail. No server OCR API is required.
 
+Optional cloud recognition: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_DASHSCOPE_API_KEY` (Alibaba Cloud Model Studio, China (Beijing) region). The photo adjustment page then offers **Cloud AI (most accurate)**, which sends the corrected photo directly from the browser to Qwen and fills items, amounts and Chinese dish names. The key is embedded in the public JavaScript; protect it with spending limits on the Alibaba Cloud side. Without a key the app stays fully on-device. `LIVE_LLM=1 npx vitest run src/lib/llm/live-eval.test.ts` runs a real-API check (reads `.env.local`, costs a few fen).
+
 ## How it works
 
 - `src/components/`: one five-step client wizard and reusable controls.
