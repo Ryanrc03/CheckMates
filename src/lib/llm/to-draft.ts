@@ -5,7 +5,7 @@ export type DishTranslation = { name: string; text: string };
 export type CloudReading = { draft: ReceiptDraft; translations: DishTranslation[] };
 const cents = (value: string | null) => value === null ? null : parseMoney(value.replace(/,(?=\d{3}(?!\d))/g, ""));
 const CJK = /[㐀-鿿]/;
-const key = (name: string) => name.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+const key = (name: string) => name.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
 /** Same unconfirmed draft the local engines produce: unreadable amounts stay null and every discount stays unresolved for the user. */
 export function toDraft(reply: LlmReceipt, model: string): CloudReading {
   const warnings = reply.uncertain.map(note => note.trim()).filter(Boolean).map(note => `Cloud recognition was unsure: ${note}`);
@@ -34,6 +34,7 @@ export function readingProblem(draft: ReceiptDraft): string | null {
   if (draft.unassignedDiscounts?.length || draft.items.some(i => i.details?.discounts.length)) return null; // a discount may or may not be inside the subtotal, so the sum proves nothing
   const sum = draft.items.reduce((total, i) => total + (i.priceCents ?? 0), 0);
   if (draft.printedSubtotalCents !== null) return sum === draft.printedSubtotalCents ? null : `Its item amounts add up to ${formatMoney(sum)}, but the printed subtotal is ${formatMoney(draft.printedSubtotalCents)}.`;
+  if (draft.tipCents === null) return "The printed tip was unreadable.";
   if (draft.printedTotalCents !== null && draft.taxCents !== null) { const expected = sum + draft.taxCents + (draft.tipCents ?? 0); return expected === draft.printedTotalCents ? null : `Its item amounts plus tax and tip add up to ${formatMoney(expected)}, but the printed total is ${formatMoney(draft.printedTotalCents)}.`; }
   return null;
 }

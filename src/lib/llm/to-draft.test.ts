@@ -60,9 +60,9 @@ describe("review fixes", () => {
     expect(draft.warnings).toContain("The first reading also found 宫保鸡丁 ($12.00). Add it if it is on the receipt.");
   });
   it("warns about unreadable subtotal, tax and tip instead of dropping them", () => {
-    const { draft } = toDraft(receipt([line("A", "4.00")], { subtotal: "4.0?", tax: "0.3?", tip: "1.0?" }), "m");
-    expect([draft.printedSubtotalCents, draft.taxCents, draft.tipCents]).toEqual([null, null, null]);
-    expect(draft.warnings).toEqual(["Could not read the printed subtotal \"4.0?\". Enter it from the photo.", "Could not read the printed tax \"0.3?\". Enter it from the photo.", "Could not read the printed tip \"1.0?\". Enter it from the photo."]);
+    const { draft } = toDraft(receipt([line("A", "4.00")], { subtotal: "4.0?", tax: "0.3?", tip: "1.0?", total: "5.3?" }), "m");
+    expect([draft.printedSubtotalCents, draft.taxCents, draft.tipCents, draft.printedTotalCents]).toEqual([null, null, null, null]);
+    expect(draft.warnings).toEqual(["Could not read the printed subtotal \"4.0?\". Enter it from the photo.", "Could not read the printed tax \"0.3?\". Enter it from the photo.", "Could not read the printed tip \"1.0?\". Enter it from the photo.", "Could not read the printed total \"5.3?\". Enter it from the photo."]);
     expect(isDraft(draft)).toBe(true);
   });
   it("reads thousands separators but not a decimal comma", () => {
@@ -81,5 +81,12 @@ describe("review fixes", () => {
   it("pairs duplicate names in order", () => {
     const { draft } = mergeReadings(reading([line("Tea", "3.00"), line("Tea", "3.00")], "9.00"), reading([line("Tea", "3.00"), line("Tea", "3.00"), line("Rice", "2.00")], "9.00"));
     expect(draft.items.map(i => i.priceCents)).toEqual([300, 300, 200]); expect(draft.warnings).toEqual(["Only the second reading found Rice. Check it against the photo."]);
+  });
+  it("names an unreadable tip instead of blaming the items", () => {
+    expect(readingProblem(toDraft(receipt([line("A", "4.00")], { tax: "0.33", tip: "1.0?", total: "5.33" }), "m").draft)).toBe("The printed tip was unreadable.");
+  });
+  it("pairs names that differ only in Unicode normalization", () => {
+    const { draft } = mergeReadings(reading([line("Crème", "5.00")], "7.00"), reading([line("Crème", "6.00")], "7.00"));
+    expect(draft.items[0].priceCents).toBeNull(); expect(draft.warnings).toEqual(["Two readings disagree on the amount for Crème ($5.00 or $6.00). Enter the printed amount."]);
   });
 });
