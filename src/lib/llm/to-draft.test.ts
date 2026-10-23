@@ -20,6 +20,12 @@ describe("toDraft", () => {
     ]), "m");
     expect(translations.map(t => t.text)).toEqual(["打抛饭 (鸡肉)", "宫保鸡丁", "炸鱿鱼", "黑糖牛奶", "牛肉河粉"]);
   });
+  it("keeps Chinese names whose protein-looking characters are not proteins, or are printed, and drops invented ones", () => {
+    const keep: [string, string, Partial<LlmItem>?][] = [["Egg Fried Rice", "鸡蛋炒饭"], ["House Cocktail", "鸡尾酒"], ["Avocado Toast", "牛油果吐司"], ["Croissant", "牛角包"], ["Escargot", "法式蜗牛"], ["Eggplant with Garlic Sauce", "鱼香茄子"], ["Fish Sauce Wings", "越南鱼露鸡翅"], ["Har Gow", "虾饺"], ["Lobster Roll", "龙虾卷"], ["Kani Salad", "蟹柳沙拉"], ["Unagi Roll", "鳗鱼卷"], ["Takoyaki", "章鱼小丸子"], ["Bulgogi", "韩式烤牛肉"], ["Chashu Ramen", "叉烧拉面"], ["Karaage", "日式炸鸡"], ["宫保鸡丁", "宫保鸡丁", { printedText: "宫保鸡丁" }]];
+    const { translations: kept } = toDraft(receipt(keep.map(([name, nameZh, extra]) => line(name, "5.00", { nameZh, ...extra }))), "m"); expect(kept.map(t => t.text)).toEqual(keep.map(k => k[1]));
+    const drop = [line("Pad Kra Pow", "5.00", { modifiers: ["Chicken"], nameZh: "打抛猪肉饭" }), line("Kung Pao Shrimp", "5.00", { nameZh: "宫保鸡丁" }), line("Pho", "5.00", { modifiers: ["Chicken"], nameZh: "牛肉河粉" }), line("Fried Tofu", "5.00", { nameZh: "红烧鱼" })];
+    expect(toDraft(receipt(drop), "m").translations).toEqual([]);
+  });
   it("keeps unreadable amounts null with a warning and leaves every discount for the user", () => {
     const { draft } = toDraft(receipt([line("Soup", "8.2?"), line("Toast", "6.00")], { discounts: [{ printedText: "Toast coupon", amount: "-1.00", itemIndex: 1 }, { printedText: "Happy hour", amount: "2.00", itemIndex: null }], uncertain: ["soup amount smudged"] }), "m");
     expect(draft.items[0].priceCents).toBeNull(); expect(draft.items[1].details?.discounts).toEqual([{ discountCents: 100, inclusion: "unresolved", sourceLine: "Toast coupon" }]); expect(draft.items[1].details?.reviewCodes).toEqual(["discount"]);
