@@ -14,7 +14,7 @@ export const RECEIPT_SCHEMA = {
 export const RECEIPT_PROMPT = `You transcribe one restaurant receipt photo into JSON. Completeness matters most: list EVERY purchased dish or drink line, top to bottom, and skip none.
 - printedText: the item's printed lines, joined with "\\n".
 - name: the item name exactly as printed in English, including portion notes such as "(12)", without quantity markers such as "x 2" or "2 @".
-- nameZh: the Simplified Chinese menu name for this item. If a modifier names the protein (Chicken, Beef, Shrimp, Tofu...), use that protein. Never mention a meat, seafood, ingredient or size that appears in neither name nor modifiers, even if the dish is usually made that way. Keep portion notes such as (12).
+- nameZh: the Simplified Chinese menu name for this item. If a modifier names the protein (Chicken, Beef, Shrimp, Tofu...), use that protein, and write the Chinese for that protein only: "Pad Kra Pow" with modifier "Chicken" is 打抛饭 (鸡肉), never 猪肉 (pork). Never mention a meat, seafood, ingredient or size that appears in neither name nor modifiers, even if the dish is usually made that way. Keep portion notes such as (12).
 - lineTotal: the amount printed on that item's row. Never compute or multiply it. quantity and unitPrice only when printed.
 - modifiers: option lines under the item, e.g. "Chicken", "No Onion". "(12.90 each)" lines are unit prices, not modifiers. Neither is a separate item.
 - discounts: every printed discount, coupon or comp line, amount without a minus sign; itemIndex is the 0-based index in items of the item it follows, or null for a whole-bill discount.
