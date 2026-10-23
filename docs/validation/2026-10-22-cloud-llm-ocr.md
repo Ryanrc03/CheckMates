@@ -7,6 +7,7 @@ Date: 2026-10-22. Branch `claude/v4-recipe-api-keys-dc6b48` (not deployed yet). 
 | Item | Result |
 | --- | --- |
 | CORS | An `OPTIONS` preflight to `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions` returned `access-control-allow-origin: *` and allowed headers `authorization, content-type`. The international endpoint echoed the origin instead. |
+| Error CORS | DashScope error responses (401 `invalid_api_key`, 400) carry `access-control-allow-origin: *` (probed with a fake key), so key and balance errors reach the browser with their own message. |
 | Key region | The user's key works only on China (Beijing). The international endpoint returns `invalid_api_key`. |
 | Model | `qwen3.5-plus` with `enable_thinking: false`. Structured output (`json_schema`) works. |
 | Cost | About 2,200 input + 560 output tokens per receipt, about US$0.0011 at the Beijing list price. |
@@ -32,7 +33,7 @@ Final Chinese names for the Line Thai items: 菠萝炒饭, 炸豆腐(12), 奶茶
 
 ## Translation hallucination and its fix
 
-In 3 of the 6 runs Qwen wrote 打抛猪肉饭 (pork) for "Pad Kra Pow" + "Chicken". A prompt rule alone did not hold, and a prompt example quoting the fixture's answer was rejected as overfitting. The fix is deterministic: `to-draft.ts` drops a Chinese name that adds a meat or seafood printed nowhere in the name, printed text or modifiers, and the item falls back to the local glossary/model translation. The final run produced 打抛饭.
+In 3 of the 6 runs Qwen wrote 打抛猪肉饭 (pork) for "Pad Kra Pow" + "Chicken". A prompt rule alone did not hold, and a prompt example quoting the fixture's answer was rejected as overfitting. The fix is deterministic: `to-draft.ts` drops a Chinese name that adds a meat or seafood the printed name does not state (modifiers do not count: names are cached by name and shared across bills), and the item falls back to the local glossary/model translation. The final run produced 打抛饭. Chinese names translate the printed name only; a balancing recheck lists every change it made as warnings.
 
 ## Tests
 
