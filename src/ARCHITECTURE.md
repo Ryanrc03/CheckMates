@@ -147,7 +147,7 @@ Spec: [UI visual alignment design](../docs/superpowers/specs/2026-10-11-checkmat
 ## Tests
 
 - Unit tests (Vitest): `src/**/*.test.ts`, next to the code. Run them with `npm test`.
-- E2E tests (Playwright, 375×812 viewport): `tests/e2e/`. `E2E_PRODUCTION=1` runs them against `npm start` on port 3200; otherwise they run against dev on 3100. Private real-photo specs are skipped unless `PRIVATE_RECEIPTS_DIR` is set.
+- E2E tests (Playwright, 375×812 viewport): `tests/e2e/`. `E2E_PRODUCTION=1` runs them against `npm start` on port 3201; otherwise they run against dev on 3101. Private real-photo specs are skipped unless `PRIVATE_RECEIPTS_DIR` is set.
 - Ground-truth fixtures and their provenance live in `tests/fixtures/receipts/`. Expected values are human annotations, not engine output.
 - Workflow used so far: reproduce a bug as a failing test, then fix it.
 

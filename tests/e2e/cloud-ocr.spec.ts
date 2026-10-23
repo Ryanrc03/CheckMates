@@ -9,6 +9,7 @@ async function mockQwen(page: Page, answer: { status: number; body: unknown }) {
   const bodies: { model: string; messages: { content: { type: string; image_url?: { url: string } }[] }[] }[] = [];
   await page.route("**/compatible-mode/v1/chat/completions", async route => {
     if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    expect(route.request().headers().authorization).toBe("Bearer e2e-fake-key"); // a reused server built with the real key fails here, before anything is fulfilled
     bodies.push(route.request().postDataJSON()); await route.fulfill({ status: answer.status, contentType: "application/json", headers: cors, body: JSON.stringify(answer.body) });
   });
   return bodies;
