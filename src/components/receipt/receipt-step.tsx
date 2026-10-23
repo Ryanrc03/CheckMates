@@ -15,8 +15,9 @@ import { PhotoInput } from "../home/home-step";
 import type { ReceiptEdit } from "@/types/receipt";
 import type { Bill } from "@/types/bill";
 import { ReceiptLineDetails } from "./receipt-line-details";
+import { CloudProgress } from "./cloud-progress";
 
-export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, stage, onCancel }: { photoUrl: string | null; onAttach: (file: File) => void; onRotate: () => void; onRecognize: (enhanced?:boolean) => void; busy: boolean; stage: string; onCancel: () => void }) {
+export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, stage, cloud = false, onCancel }: { photoUrl: string | null; onAttach: (file: File) => void; onRotate: () => void; onRecognize: (enhanced?:boolean) => void; busy: boolean; stage: string; cloud?: boolean; onCancel: () => void }) {
   const s = useBillStore(); const draft = s.receiptDraft; const useDraft = draft && !s.receiptConfirmed;
   const [items, setItems] = useState<ReceiptEdit["items"]>(() => s.receiptEdit?.items ?? (useDraft ? draft.items.map((i, index) => ({ id: `ocr-${index}`, name: i.name, price: i.priceCents === null ? "" : moneyInput(i.priceCents), allocation: { mode: "equal" as const, personIds: [] }, receiptDetails:i.details?structuredClone(i.details):undefined })) : s.bill.items.map(i => ({ ...i, price: moneyInput(i.priceCents) }))));
   const [tax, setTax] = useState(() => s.receiptEdit?.tax ?? (useDraft ? draft.taxCents === null ? "" : moneyInput(draft.taxCents) : moneyInput(s.bill.taxCents)));
@@ -61,7 +62,7 @@ export function ReceiptStep({ photoUrl, onAttach, onRotate, onRecognize, busy, s
     {s.source === "photo" && <div className="photo-review paper">
       {photoUrl ? <><a href={photoUrl} target="_blank" rel="noreferrer" className="photo-link"><img src={photoUrl} alt="Your original receipt — open to zoom"/><span>Open photo to zoom <ExternalLink aria-hidden="true"/></span></a><div className="photo-actions"><Button variant="outline" className="photo-actions-wide" onClick={onRotate} disabled={busy}><RotateCw aria-hidden="true"/> Adjust or rotate photo</Button><Button variant="outline" onClick={()=>onRecognize()} disabled={busy}>Recognize again</Button><Button variant="outline" onClick={()=>onRecognize(true)} disabled={busy}>Enhanced scan</Button></div></> : <p className="muted">Your draft is saved. Reattach the photo to view it; this will not replace your edits.</p>}
       <PhotoInput label="Reattach receipt photo" onSelect={onAttach}/>
-      {busy && <div role="status" className="photo-busy"><p>{stage}</p><Button variant="outline" onClick={onCancel}>Cancel recognition</Button></div>}
+      {busy && <div role="status" className="photo-busy">{cloud ? <CloudProgress stage={stage}/> : <p>{stage}</p>}<Button variant="outline" onClick={onCancel}>Cancel recognition</Button></div>}
       {draft && <details className="disclosure"><summary>Original recognized text<ChevronDown className="disclosure-icon" aria-hidden="true"/></summary><pre>{draft.rawText || "No text recognized."}</pre></details>}
       {draft?.alternateRawText&&<details className="disclosure"><summary>Alternative recognized text<ChevronDown className="disclosure-icon" aria-hidden="true"/></summary><pre>{draft.alternateRawText}</pre></details>}
       {!!draft?.financialRawText?.length&&<details className="disclosure"><summary>Tax and total recognition evidence<ChevronDown className="disclosure-icon" aria-hidden="true"/></summary><pre>{draft.financialRawText.join("\n\n---\n\n")}</pre></details>}

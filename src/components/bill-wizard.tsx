@@ -14,6 +14,8 @@ import { recognizeReceipt, type OcrEngine } from "@/lib/ocr/client";
 import { readEnginePreference, writeEnginePreference } from "@/lib/ocr/engine-preference";
 import { parseReceiptEvidence } from "@/lib/ocr/retry";
 import { parseReceiptText } from "@/lib/ocr/parseReceipt";
+import type { ReceiptDraft } from "@/types/receipt";
+import type { DishTranslation } from "@/lib/llm/to-draft";
 import type { Adjustment } from "@/lib/receipt-image/render";
 import { getTranslationService } from "@/lib/translation/service";
 import { useTranslationStore } from "@/store/useTranslationStore";
@@ -39,12 +41,15 @@ export function BillWizard() {
     try {
       await getTranslationService().setOcrBusy(true); // frees the translation engine before OCR; released in finally or by cancel()
       if (!replacing) commitPhoto(selected);
-      const result = await recognizeReceipt(image, { signal: abort.signal, enhanced: enhancedScan.current, engine, onProgress: (message, value) => { if (id === request.current) { setStage(message); setProgress(value); } } });
+      const onProgress = (message: string, value: number | null) => { if (id === request.current) { setStage(message); setProgress(value); } };
+      let draft: ReceiptDraft; let translations: DishTranslation[] = [];
+      if (engine === "cloud") { const { recognizeWithCloud } = await import("@/lib/llm/recognize").catch(() => { throw new Error("Could not load cloud recognition. Check your connection, or choose Standard or Precise."); }); ({ draft, translations } = await recognizeWithCloud(image, { signal: abort.signal, onProgress })); }
+      else draft = parseReceiptEvidence(await recognizeReceipt(image, { signal: abort.signal, enhanced: enhancedScan.current, engine, onProgress }));
       if (id !== request.current) return;
-      const draft = parseReceiptEvidence(result);
       if (replacing) commitPhoto(selected);
       else useBillStore.getState().startBill("photo", selected.name);
       useBillStore.getState().setReceiptDraft(draft); useTranslationStore.getState().clearForBill(); setDraftVersion(v => v + 1);
+      if (translations.length) { getTranslationService().seed(translations); useTranslationStore.getState().setEnabled(true); } // cloud names come with the draft; the receipt step's translation request then reads them from the cache
     } catch (failure) {
       if (id === request.current && !abort.signal.aborted) { if (replacing) discardAdjustment(); setError(failure instanceof Error ? failure.message : "Recognition failed. Try again or enter items manually."); }
     } finally { if (id === request.current) { setBusy(false); controller.current = null; void getTranslationService().setOcrBusy(false); } }
@@ -70,9 +75,9 @@ export function BillWizard() {
         <nav aria-label="Bill progress" className="step-progress">{["Start", "Receipt", "Friends", "Split", "Result"].map((label, i) => <div key={label} aria-current={i === current ? "step" : undefined} className={i <= current ? "active" : ""}><span>{i + 1}</span><small>{label}</small></div>)}</nav>
         {adjusting && adjustUrl ? <PhotoAdjustment key={adjustUrl} file={adjusting} originalUrl={adjustUrl} initialAdjustment={adjustments.get(adjusting)} engine={engine} onEngineChange={next => { setEngine(next); writeEnginePreference(window.localStorage, next); }} onAdjustmentChange={saveAdjustment} onSelect={selectForAdjustment} onConfirm={image => void confirmAdjustment(image)} onBack={discardAdjustment} onManual={() => { if (s.step === "receipt" && !window.confirm("Enter items manually? This replaces the current receipt edits with a blank draft.")) return; commitPhoto(adjusting); setAdjusting(null); s.startBill("photo", adjusting.name); s.setReceiptDraft(parseReceiptText("")); useTranslationStore.getState().clearForBill(); setDraftVersion(v => v + 1); }}/> : <>
           {s.storageError && <Notice tone="warning" role="status">{s.storageError}</Notice>}{s.error && <Notice tone="error" role="alert">{s.error}</Notice>}{error && s.step !== "home" && <Notice tone="error" role="alert">{error}</Notice>}
-          {s.step === "home" && <HomeStep busy={busy} stage={stage} progress={progress} error={error} hasPhoto={!!photoUrl} onCancel={cancel} onRetry={() => selectForAdjustment(file.current!)} onPhotoSelected={selectForAdjustment} onDemo={() => { cancel(); releasePhoto(); setError(null); useTranslationStore.getState().clearForBill(); s.startBill("demo"); }} onManual={() => { cancel(); if (s.source !== "photo") s.startBill("photo"); s.setReceiptDraft(parseReceiptText("")); useTranslationStore.getState().clearForBill(); setDraftVersion(v => v + 1); }}
+          {s.step === "home" && <HomeStep cloud={engine === "cloud"} busy={busy} stage={stage} progress={progress} error={error} hasPhoto={!!photoUrl} onCancel={cancel} onRetry={() => selectForAdjustment(file.current!)} onPhotoSelected={selectForAdjustment} onDemo={() => { cancel(); releasePhoto(); setError(null); useTranslationStore.getState().clearForBill(); s.startBill("demo"); }} onManual={() => { cancel(); if (s.source !== "photo") s.startBill("photo"); s.setReceiptDraft(parseReceiptText("")); useTranslationStore.getState().clearForBill(); setDraftVersion(v => v + 1); }}
           />}
-          {s.step === "receipt" && <ReceiptStep key={draftVersion} photoUrl={photoUrl} onAttach={attach} onRotate={() => { if (file.current) selectForAdjustment(file.current); }} onRecognize={enhanced => { if (file.current) selectForAdjustment(file.current, enhanced); }} busy={busy} stage={stage} onCancel={() => { cancel(); if (pendingUrl.current) discardAdjustment(); }}/>}
+          {s.step === "receipt" && <ReceiptStep key={draftVersion} photoUrl={photoUrl} onAttach={attach} onRotate={() => { if (file.current) selectForAdjustment(file.current); }} onRecognize={enhanced => { if (file.current) selectForAdjustment(file.current, enhanced); }} busy={busy} stage={stage} cloud={engine === "cloud"} onCancel={() => { cancel(); if (pendingUrl.current) discardAdjustment(); }}/>}
           {s.step === "people" && <PeopleStep/>}{s.step === "split" && <SplitStep/>}{s.step === "result" && <ResultStep onReset={reset}/>}
         </>}
       </>}

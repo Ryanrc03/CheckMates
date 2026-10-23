@@ -4,7 +4,7 @@ Map of the CheckMates source for agents and contributors. Read this before chang
 
 ## What the app is
 
-A single-page, client-only receipt splitter. Five wizard steps, no server API:
+A single-page, client-only receipt splitter. Five wizard steps, no server API of its own:
 
 ```
 home ──► receipt ──► people ──► split ──► result
@@ -13,6 +13,8 @@ home ──► receipt ──► people ──► split ──► result
 ```
 
 The photo is read by Tesseract.js running in a browser Web Worker. Bill data persists in `localStorage`; photos never do.
+
+With `NEXT_PUBLIC_DASHSCOPE_API_KEY` set at build time, a third engine, **Cloud AI**, sends the corrected photo from the browser straight to Alibaba Cloud DashScope (`qwen3.5-plus`) and gets back items, amounts and Chinese names in one call. The key is public in the bundle by design; cost is capped on the Alibaba Cloud side.
 
 ## Directory map
 
@@ -37,6 +39,7 @@ lib/                  Pure logic (no React). Everything here is unit tested.
   share.ts            Copyable summary text.
   session.ts          Runtime validation of persisted state, v1->v2 migration, step gating.
   receipt.ts          Sample bill and empty bill factories.
+  llm/                Cloud engine: DashScope request, prompt/schema, reply validation, draft mapping and ledger recheck (see below).
   ocr/                Recognition + receipt parsing pipeline (see below).
   receipt-image/      Photo analysis and perspective/tilt correction (see below).
 types/
@@ -103,6 +106,30 @@ Entry point: `recognizeReceipt` in `client.ts`, called from `bill-wizard.tsx` `r
 
 These rules are deliberate and backed by real-photo regressions (`docs/validation/`). Do not relax them to make one receipt pass.
 
+## Cloud engine (`lib/llm/`)
+
+Entry point: `recognizeWithCloud` in `recognize.ts`, called from `bill-wizard.tsx` `recognizePrepared` when the engine is `"cloud"`. It returns a `ReceiptDraft` directly (no `OcrEvidence`), plus Chinese names that are seeded into the translation cache as provider `llm`. The engine is offered only when a key is configured. It is the default only for browsers that have not stored another engine choice (`ocr/engine-preference.ts`), and a cloud recognition turns "Show Chinese names" on. The home step privacy line and the "reading" status text are engine-aware (`home/home-step.tsx`).
+
+| File | Role |
+|---|---|
+| `config.ts` | `NEXT_PUBLIC_DASHSCOPE_*` (literal reads, inlined at build). No key, or a non-https base URL, means the engine is hidden. Defaults: China (Beijing) endpoint, `qwen3.5-plus` |
+| `upload-image.ts` | JPEG data URL, long edge <= 2048 px. A 2.3 MB PNG took 69 s; a 260 KB JPEG took 11 s |
+| `prompt.ts` | Prompt, JSON Schema and recheck message. Copy amounts, never compute; `nameZh` translates the printed name only, never modifiers or unprinted ingredients |
+| `qwen-client.ts` | One `chat/completions` request (`enable_thinking: false`, `temperature: 0`, strict `json_schema`). HTTP statuses and DashScope codes (`Arrearage`, `DataInspectionFailed`, `model_not_found`) map to messages that say what to do next |
+| `reply.ts` | Hand validation of the model JSON into `LlmReceipt` |
+| `to-draft.ts` | Cents via `parseMoney` (commas stripped only as thousands separators), discounts `unresolved`, `readingProblem` ledger check, `mergeReadings`, protein guard |
+| `recognize.ts` | `createCloudRecognizer`: one reading, at most one recheck, 90 s total timeout |
+
+Recognition flow: compress, read, then `readingProblem` checks the draft. A recheck (one only) is sent with the first transcription and the specific gap in exactly these cases: no items were found; an item amount is unreadable; items do not add up to the printed subtotal; or, when no subtotal is printed, the tip is unreadable or items + tax + tip do not equal the printed total. It never happens when a discount is listed (the sum proves nothing then). If the recheck fails or times out, the first reading is kept with a warning. User cancel always wins over a timeout. If there are still no items, the engine throws.
+
+`to-draft.ts` details:
+- Printed subtotal, tax, tip and total that cannot be read add warnings. An unreadable tip stays `null`; the tip is 0 only when no tip is printed.
+- Names are matched across the two readings by a key built from NFKC normalization and Unicode letters only, so Chinese names match too.
+- `mergeReadings`: a recheck that balances replaces the first reading, and every difference (changed amount, added line, removed line, and a changed printed subtotal, tax, tip or total, so a recheck cannot balance by rewriting the subtotal) is listed as a warning to check against the photo. An empty recheck keeps the first reading. Otherwise amounts the two readings disagree on are blanked (`ocr-price`), and lines only one reading saw become warnings, never silent additions.
+- Protein guard (`PROTEINS` / `invents`): a Chinese name is dropped when it adds a meat, seafood, tofu or a bare generic meat (肉, usually pork; 肉桂 and 肉松 excepted) that the printed name (or the first printed line) does not state; modifiers do not count, because Chinese names are cached by name (`translationKey`, 30 days) and shared across lines and bills. A name that appears more than once in a reading with different Chinese names gets none. Qwen wrote 打抛猪肉饭 for "Pad Kra Pow" + "Chicken" in live runs whatever the prompt said, so this is deterministic rather than a prompt example. Dropped names fall back to the local glossary/model translation.
+
+The same conservative policy as the local engine applies; see "Parsing policy" above.
+
 ## Photo correction (`lib/receipt-image/`)
 
 | File | Role |
@@ -130,6 +157,7 @@ UI: `components/receipt/photo-adjustment.tsx`. Adjustments are kept per `File` i
 | Financial field misread | `financial-evidence.ts` / `financial-image.ts`; check `docs/validation/2026-10-06-financial-ocr.md` first |
 | New persisted field | `types/receipt.ts` BillSession → `useBillStore.ts` persist/initial → `session.ts` restoreSession |
 | Result display | `components/result/*`; the data comes from `explainSplitBill` |
+| Cloud recognition accuracy or translation wording | `lib/llm/prompt.ts`; verify with `LIVE_LLM=1 npx vitest run src/lib/llm/live-eval.test.ts` (reads `.env.local`, about 0.03 CNY per run) |
 | Colors, type, spacing, a component's look | `app/globals.css` `:root` tokens and `@layer components`; read "Styling" first |
 
 ## Styling
@@ -147,7 +175,7 @@ Spec: [UI visual alignment design](../docs/superpowers/specs/2026-10-11-checkmat
 ## Tests
 
 - Unit tests (Vitest): `src/**/*.test.ts`, next to the code. Run them with `npm test`.
-- E2E tests (Playwright, 375×812 viewport): `tests/e2e/`. `E2E_PRODUCTION=1` runs them against `npm start` on port 3200; otherwise they run against dev on 3100. Private real-photo specs are skipped unless `PRIVATE_RECEIPTS_DIR` is set.
+- E2E tests (Playwright, 375×812 viewport): `tests/e2e/`. `E2E_PRODUCTION=1` runs them against `npm start` on port 3201; otherwise they run against dev on 3101. `E2E_PRODUCTION=1` needs a build made with the fake `NEXT_PUBLIC_DASHSCOPE_*` values from `playwright.config.ts`, because they are inlined at build time (the cloud spec also asserts the fake key on every request). Private real-photo specs are skipped unless `PRIVATE_RECEIPTS_DIR` is set.
 - Ground-truth fixtures and their provenance live in `tests/fixtures/receipts/`. Expected values are human annotations, not engine output.
 - Workflow used so far: reproduce a bug as a failing test, then fix it.
 
@@ -158,4 +186,4 @@ Spec: [UI visual alignment design](../docs/superpowers/specs/2026-10-11-checkmat
 - `public/ocr/` is generated by `scripts/prepare-ocr-assets.mjs` (runs on `predev` and `prebuild`) and gitignored. Asset versions are pinned and checked.
 - The code style is dense: many statements per line, short names. Match the surrounding style in small edits; refactor deliberately, not incidentally.
 - Imports use the `@/` alias for `src/`.
-- UI copy is English and amounts are USD. Error messages tell the user what to do next.
+- UI copy is English and amounts are USD. Error messages tell the user what to do next. Exception: the cloud recognition status (`components/receipt/cloud-progress.tsx`, steps from `lib/llm/progress.ts`) is Chinese at the owner's request, marked `lang="zh-Hans"`.

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { PhotoInput } from "@/components/home/home-step";
 import type { OcrEngine } from "@/lib/ocr/client";
+import { cloudConfig } from "@/lib/llm/config";
 import type { Analysis } from "@/lib/receipt-image/analyze";
 import { isValidQuad, type Point, type Quad } from "@/lib/receipt-image/geometry";
 import { correctionBlob, renderCorrection, type Adjustment } from "@/lib/receipt-image/render";
@@ -17,6 +18,7 @@ const cornerNames = ["Top left", "Top right", "Bottom right", "Bottom left"];
 export function PhotoAdjustment({ file, originalUrl, initialAdjustment, engine, onEngineChange, onAdjustmentChange, onSelect, onConfirm, onBack, onManual }: {
   file: File; originalUrl: string; initialAdjustment?: Adjustment; engine: OcrEngine; onEngineChange: (engine: OcrEngine) => void; onAdjustmentChange: (file: File, value: Adjustment) => void; onSelect: (file: File) => void; onConfirm: (image: Blob) => void; onBack: () => void; onManual: () => void;
 }) {
+  const cloud = cloudConfig() !== null;
   const [image, setImage] = useState<ImageBitmap | null>(null);
   const [adjustment, setAdjustment] = useState<Adjustment>(initialAdjustment ?? { corners: null, angle: 0, quarterTurns: 0 });
   const [analysisStatus, setAnalysisStatus] = useState(initialAdjustment ? "Previous adjustment loaded. Check the preview." : "Analyzing this photo…");
@@ -142,10 +144,11 @@ export function PhotoAdjustment({ file, originalUrl, initialAdjustment, engine, 
       <label className="angle-field">Fine tune angle <Input aria-label="Fine tune angle" className="w-22" type="number" min={-45} max={45} step="0.1" disabled={busy} value={adjustment.angle} onChange={event => { userEdited.current = true; setAnalysisStatus("Manual adjustment selected. Check the preview."); setAdjustment(previous => ({ ...previous, angle: Math.max(-45, Math.min(45, Number(event.target.value) || 0)) })); }} /> degrees</label>
     </div>
     <div className="paper"><fieldset className="choice-group"><legend className="field-label">Recognition engine</legend>
+      {cloud && <label className={`choice-card${engine === "cloud" ? " selected" : ""}`}><input type="radio" name="ocr-engine" value="cloud" disabled={busy} checked={engine === "cloud"} onChange={() => onEngineChange("cloud")} /><span><b>Cloud AI (most accurate)</b> <small>sends this photo to Alibaba Cloud Qwen; adds Chinese names</small></span></label>}
       <label className={`choice-card${engine === "standard" ? " selected" : ""}`}><input type="radio" name="ocr-engine" value="standard" disabled={busy} checked={engine === "standard"} onChange={() => onEngineChange("standard")} /><span><b>Standard (fast)</b></span></label>
       <label className={`choice-card${engine === "precise" ? " selected" : ""}`}><input type="radio" name="ocr-engine" value="precise" disabled={busy} checked={engine === "precise"} onChange={() => onEngineChange("precise")} /><span><b>Precise</b> <small>first use downloads about 45 MB; stays in this browser</small></span></label>
     </fieldset></div>
     <div className="adjustment-secondary"><PhotoInput onSelect={onSelect} label="Choose another receipt photo" /><Button type="button" variant="ghost" onClick={onManual}>Enter items manually</Button></div>
-    <div className="bottom-actions"><div className="bottom-actions-inner"><Button type="button" variant="outline" onClick={onBack}>Back</Button><Button type="button" disabled={!image || busy || !previewReady || analysisStatus === "Analyzing this photo…"} onClick={() => void confirm()}>{busy ? "Preparing photo…" : engine === "precise" ? "Use this photo and recognize (precise)" : "Use this photo and recognize"} <ArrowRight aria-hidden="true"/></Button></div></div>
+    <div className="bottom-actions"><div className="bottom-actions-inner"><Button type="button" variant="outline" onClick={onBack}>Back</Button><Button type="button" disabled={!image || busy || !previewReady || analysisStatus === "Analyzing this photo…"} onClick={() => void confirm()}>{busy ? "Preparing photo…" : engine === "precise" ? "Use this photo and recognize (precise)" : engine === "cloud" ? "Use this photo and recognize (cloud)" : "Use this photo and recognize"} <ArrowRight aria-hidden="true"/></Button></div></div>
   </section>;
 }
