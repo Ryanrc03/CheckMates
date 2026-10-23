@@ -30,6 +30,13 @@ describe("toDraft", () => {
     const drop = [line("Pad Kra Pow", "5.00", { modifiers: ["Chicken"], nameZh: "打抛猪肉饭" }), line("Kung Pao Shrimp", "5.00", { nameZh: "宫保鸡丁" }), line("Pho", "5.00", { modifiers: ["Chicken"], nameZh: "牛肉河粉" }), line("Fried Tofu", "5.00", { nameZh: "红烧鱼" })];
     expect(toDraft(receipt(drop), "m").translations).toEqual([]);
   });
+  it("flags a printed subtotal, tax, tip or total the recheck changed", () => {
+    const reading = (items: LlmItem[], subtotal: string) => toDraft(receipt(items, { subtotal }), "m");
+    const { draft } = mergeReadings(reading([line("A", "4.00")], "16.90"), reading([line("A", "4.00")], "4.00"));
+    expect(draft.warnings).toEqual(["The double-check changed the printed subtotal from $16.90 to $4.00. Check it against the photo."]);
+    const unread = mergeReadings(toDraft(receipt([line("A", "4.00")], { subtotal: "4.00", tax: "0.50", total: "4.50" }), "m"), toDraft(receipt([line("A", "4.00")], { subtotal: "4.00", tip: "1.00", total: "5.00" }), "m"));
+    expect(unread.draft.warnings).toEqual(["The double-check changed the printed tax from $0.50 to unreadable. Check it against the photo.", "The double-check changed the printed tip from $0.00 to $1.00. Check it against the photo.", "The double-check changed the printed total from $4.50 to $5.00. Check it against the photo."]);
+  });
   it("keeps unreadable amounts null with a warning and leaves every discount for the user", () => {
     const { draft } = toDraft(receipt([line("Soup", "8.2?"), line("Toast", "6.00")], { discounts: [{ printedText: "Toast coupon", amount: "-1.00", itemIndex: 1 }, { printedText: "Happy hour", amount: "2.00", itemIndex: null }], uncertain: ["soup amount smudged"] }), "m");
     expect(draft.items[0].priceCents).toBeNull(); expect(draft.items[1].details?.discounts).toEqual([{ discountCents: 100, inclusion: "unresolved", sourceLine: "Toast coupon" }]); expect(draft.items[1].details?.reviewCodes).toEqual(["discount"]);

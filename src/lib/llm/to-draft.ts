@@ -51,6 +51,7 @@ function listChanges(first: ReceiptDraft, second: ReceiptDraft): ReceiptDraft {
     if (index < 0) { draft.warnings.push(`The double-check added ${item.name} (${amount(item.priceCents)}). Check it against the photo.`); continue; }
     used.add(index); const was = first.items[index].priceCents; if (was !== item.priceCents) draft.warnings.push(`The double-check changed ${item.name} from ${amount(was)} to ${amount(item.priceCents)}. Check it against the photo.`);
   }
+  for (const [field, label] of [["printedSubtotalCents", "subtotal"], ["taxCents", "tax"], ["tipCents", "tip"], ["printedTotalCents", "total"]] as const) if (first[field] !== second[field]) draft.warnings.push(`The double-check changed the printed ${label} from ${first[field] === null ? "unreadable" : formatMoney(first[field])} to ${second[field] === null ? "unreadable" : formatMoney(second[field])}. Check it against the photo.`);
   first.items.forEach((other, k) => { if (!used.has(k)) draft.warnings.push(`The double-check removed ${other.name} (${amount(other.priceCents)}). Check it against the photo.`); });
   return draft;
 }
